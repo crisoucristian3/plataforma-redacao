@@ -4,7 +4,7 @@ import {
   LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
   GraduationCap, CheckCircle2, Clock, BookOpen, ArrowRight, 
   FileText, Sparkles, Pencil, Star, StickyNote, Paperclip, Camera,
-  Menu, X
+  Menu, X, AlertCircle, Headphones // <-- Ícone novo adicionado aqui
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -12,15 +12,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState('home')
   const [aulas, setAulas] = useState([])
+  const [temas, setTemas] = useState([]) 
   const [redacaoSelecionada, setRedacaoSelecionada] = useState(null)
   const [minhasRedacoes, setMinhasRedacoes] = useState([]) 
-  const [redacoesPendentes, setRedacoesPendentes] = useState([]) 
   const [nome, setNome] = useState('')
   const [ultimaNota, setUltimaNota] = useState('')
   const [escolaridade, setEscolaridade] = useState('')
   const [fotoPerfil, setFotoPerfil] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
-  const [menuAberto, setMenuAberto] = useState(false) // Controle do celular
+  const [menuAberto, setMenuAberto] = useState(false)
+  
+  // NOVO: Estado dos créditos
+  const [creditosRestantes, setCreditosRestantes] = useState(6)
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -59,6 +62,9 @@ export default function Dashboard() {
       }))
       setAulas(aulasMapeadas)
 
+      const { data: listaTemas } = await supabase.from('temas_redacao').select('*').order('created_at', { ascending: false })
+      setTemas(listaTemas || [])
+
       if (p?.tipo_usuario === 'aluno') {
         const { data: red } = await supabase
           .from('redacoes')
@@ -66,6 +72,19 @@ export default function Dashboard() {
           .eq('aluno_id', user.id)
           .order('data_envio', { ascending: false })
         setMinhasRedacoes(red || [])
+
+        // NOVO: LÓGICA DE CÁLCULO DE CRÉDITOS DO MÊS ATUAL
+        const dataAtual = new Date();
+        const primeiroDiaDoMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString();
+
+        const { count } = await supabase
+          .from('redacoes')
+          .select('*', { count: 'exact', head: true })
+          .eq('aluno_id', user.id)
+          .gte('data_envio', primeiroDiaDoMes);
+
+        const usados = count || 0;
+        setCreditosRestantes(Math.max(0, 6 - usados)); // Garante que não fique negativo
       }
     } else { window.location.href = '/login' }
     setLoading(false)
@@ -138,7 +157,8 @@ export default function Dashboard() {
       <nav className="flex flex-col gap-4 flex-1">
         <NavItem icon={<LayoutDashboard size={22}/>} label="Início" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<PlayCircle size={22}/>} label="Aulas" color="#70E0BB" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<UserCircle size={22}/>} label="Perfil" color="#FFDE03" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<FileText size={22}/>} label="Temas" color="#FFDE03" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<UserCircle size={22}/>} label="Perfil" color="#A78BFA" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
       </nav>
 
       <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl hover:bg-[#FF0080]/10"><LogOut size={22} /> <span>Sair</span></button>
@@ -148,7 +168,6 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-[#FDFBF7] text-[#1A1A1A] font-sans selection:bg-[#FF0080]/30 relative">
       
-      {/* MENU HAMBURGUER (MOBILE) */}
       <button 
         onClick={() => setMenuAberto(true)}
         className="lg:hidden fixed top-6 left-6 z-40 p-3 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
@@ -156,12 +175,10 @@ export default function Dashboard() {
         <Menu size={28} strokeWidth={3} />
       </button>
 
-      {/* SIDEBAR DESKTOP */}
       <aside className="w-72 border-r-4 border-[#1A1A1A] bg-[#FFF] p-8 flex flex-col hidden lg:flex relative">
         <SidebarConteudo />
       </aside>
 
-      {/* SIDEBAR MOBILE (OVERLAY) */}
       {menuAberto && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-[#1A1A1A]/40 backdrop-blur-sm" onClick={() => setMenuAberto(false)}></div>
@@ -174,16 +191,32 @@ export default function Dashboard() {
       <main className={`flex-1 p-8 lg:p-12 overflow-y-auto relative ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
         <div className="absolute top-10 right-10 opacity-10 pointer-events-none"><Sparkles size={120} className="text-[#FF0080] animate-pulse" /></div>
         
-        {/* Espaçamento extra no mobile para o botão não cobrir o título */}
         <div className="h-16 lg:hidden"></div>
 
         {abaAtiva === 'home' && !redacaoSelecionada && (
           <div className="max-w-6xl mx-auto">
-            <header className="mb-12 relative">
+            <header className="mb-8 relative">
                <div className="absolute -top-6 -left-4 w-24 h-8 bg-[#FFDE03]/40 -rotate-3 rounded-sm"></div>
                <h1 className="text-4xl md:text-6xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Olá, <span className="text-[#FF0080]">{nome.split(' ')[0]}</span>!</h1>
                <p className="text-lg md:text-xl font-bold text-[#555] mt-2 flex items-center gap-2 italic"><Star size={20} className="text-[#FFDE03] fill-[#FFDE03]" /> Pronto para o próximo nível?</p>
             </header>
+
+            {/* NOVO: AVISO DE CRÉDITOS */}
+            <div className="mb-8 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-xl border-2 border-[#1A1A1A] ${creditosRestantes > 0 ? 'bg-[#70E0BB]' : 'bg-red-400'}`}>
+                   <AlertCircle size={24} className={creditosRestantes === 0 ? 'text-white' : 'text-[#1A1A1A]'} />
+                </div>
+                <div>
+                  <h4 className="font-black uppercase italic leading-tight text-[#1A1A1A]">Seus Créditos do Mês</h4>
+                  <p className="text-sm font-bold opacity-70">Renova automaticamente todo dia 1º.</p>
+                </div>
+              </div>
+              <div className="text-3xl font-black bg-[#F9F6F0] px-4 py-2 border-2 border-[#1A1A1A] rounded-xl shadow-inner">
+                {creditosRestantes} <span className="text-sm uppercase opacity-50">/ 6</span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
               <div className="relative group p-8 rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => window.location.href = '/enviar-redacao'}>
                 <div className="relative z-10 text-white">
@@ -219,12 +252,10 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ... Resto das abas (redacaoSelecionada, perfil, aulas) seguem o mesmo layout ... */}
         {abaAtiva === 'perfil' && (
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl font-black uppercase italic text-[#1A1A1A] mb-8">Dados do Aluno</h2>
             <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] space-y-8 relative overflow-hidden">
-               {/* Conteudo do perfil ja existente */}
                <div className="flex flex-col items-center pb-8 border-b-4 border-dashed border-[#1A1A1A]">
                 <div className="relative group">
                   <div className="w-32 h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] relative">
@@ -278,6 +309,43 @@ export default function Dashboard() {
           </div>
         )}
 
+        {abaAtiva === 'temas' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-left-8 duration-500">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-12 border-b-8 border-[#FFDE03] inline-block">Propostas de Redação</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {temas.length === 0 ? (
+                <div className="col-span-1 md:col-span-2 bg-white border-4 border-[#1A1A1A] p-10 rounded-[40px] text-center shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                  <FileText size={60} className="mx-auto mb-4 text-[#1A1A1A]/30" />
+                  <p className="font-black text-xl italic text-[#1A1A1A]/50 uppercase">Nenhum tema foi publicado ainda.</p>
+                </div>
+              ) : (
+                temas.map((tema) => (
+                  <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 transition-all flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-2xl font-black uppercase leading-tight mb-4 text-[#FF0080]">{tema.titulo}</h3>
+                      {tema.descricao && (
+                        <p className="text-base font-medium italic mb-6 text-[#333] border-l-4 border-[#FFDE03] pl-4">{tema.descricao}</p>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 pt-6 border-t-4 border-dashed border-[#1A1A1A]/20">
+                      {tema.arquivo_apoio_url ? (
+                        <a href={tema.arquivo_apoio_url} target="_blank" className="w-full flex items-center justify-center gap-3 py-4 bg-[#70E0BB] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]">
+                          <FileText size={24} /> Ler Textos de Apoio
+                        </a>
+                      ) : (
+                         <span className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9F6F0] border-4 border-[#1A1A1A]/30 rounded-2xl font-black uppercase text-sm text-[#1A1A1A]/50 cursor-not-allowed">
+                          Sem material de apoio
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {redacaoSelecionada && (
           <div className="max-w-5xl mx-auto animate-in zoom-in-95 duration-500">
             <button onClick={() => setRedacaoSelecionada(null)} className="flex items-center gap-2 font-black text-lg md:text-xl text-[#1A1A1A] mb-8 hover:text-[#FF0080] transition-colors uppercase italic"><ArrowRight size={24} className="rotate-180" strokeWidth={3} /> Voltar</button>
@@ -295,6 +363,21 @@ export default function Dashboard() {
                 </div>
                 <div className="p-6 md:p-8 rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
                   <h3 className="text-lg md:text-xl font-black uppercase mb-4 flex items-center gap-2 border-b-2 border-[#1A1A1A] pb-2"><Sparkles size={20} /> FEEDBACK</h3>
+                  
+                  {/* NOVO: PLAYER DE ÁUDIO AQUI */}
+                  {redacaoSelecionada.correcoes?.[0]?.audio_url && (
+                    <div className="mb-6 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                      <h4 className="font-black uppercase italic text-sm mb-3 flex items-center gap-2 text-[#3B82F6]">
+                        <Headphones size={18} /> Ouça a correção:
+                      </h4>
+                      <audio 
+                        src={redacaoSelecionada.correcoes[0].audio_url} 
+                        controls 
+                        className="w-full h-10 outline-none rounded-lg"
+                      />
+                    </div>
+                  )}
+
                   <p className="text-base md:text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "Aguardando correção..."}"</p>
                 </div>
               </div>

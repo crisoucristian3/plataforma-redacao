@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -9,7 +9,10 @@ import {
   MessageSquareText, 
   ExternalLink,
   Sparkles,
-  Pencil
+  Pencil,
+  Mic,
+  Square,
+  Trash2
 } from 'lucide-react'
 
 export default function CorrigirRedacao() {
@@ -18,6 +21,12 @@ export default function CorrigirRedacao() {
   const [nota, setNota] = useState('')
   const [feedback, setFeedback] = useState('')
   const [salvando, setSalvando] = useState(false)
+
+  // Novos estados para o Áudio
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioBlob, setAudioBlob] = useState(null)
+  const [audioUrl, setAudioUrl] = useState('')
+  const mediaRecorderRef = useRef(null)
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -33,18 +42,83 @@ export default function CorrigirRedacao() {
     setRedacao(data)
   }
 
+  // Funções de Gravação de Áudio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      const chunks = []
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' })
+        const url = URL.createObjectURL(blob)
+        setAudioBlob(blob)
+        setAudioUrl(url)
+        // Libera o microfone do navegador
+        stream.getTracks().forEach(track => track.stop())
+      }
+
+      recorder.start()
+      mediaRecorderRef.current = recorder
+      setIsRecording(true)
+    } catch (err) {
+      alert("Erro ao acessar o microfone. Verifique as permissões do navegador.")
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const discardAudio = () => {
+    setAudioBlob(null)
+    setAudioUrl('')
+    setIsRecording(false)
+  }
+
   const salvarNoBanco = async () => {
-    if (!nota || !feedback) return alert("Preencha a nota e o feedback!")
+    // Agora o professor pode enviar apenas a nota e o áudio, ou nota e texto.
+    if (!nota || (!feedback && !audioBlob)) return alert("Preencha a nota e adicione um texto ou áudio de feedback!")
+    
     setSalvando(true)
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     const { data: { user } } = await supabase.auth.getUser()
 
     try {
+      let finalAudioUrl = null
+
+      // Se tiver áudio gravado, faz o upload para o Supabase Storage primeiro
+      if (audioBlob) {
+        const fileName = `audio_${id}_${Date.now()}.webm`
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('audios') // NOME DO BUCKET NO SUPABASE
+          .upload(fileName, audioBlob, { contentType: 'audio/webm' })
+
+        if (uploadError) throw new Error("Erro ao enviar áudio: " + uploadError.message)
+
+        // Pega a URL pública do áudio
+        const { data: publicUrlData } = supabase.storage
+          .from('audios')
+          .getPublicUrl(fileName)
+
+        finalAudioUrl = publicUrlData.publicUrl
+      }
+
+      // Salva os dados na tabela de correções
       const { error: errCorr } = await supabase.from('correcoes').insert([{
         redacao_id: id,
         professor_id: user.id,
         nota: parseFloat(nota),
-        comentarios: feedback
+        comentarios: feedback,
+        audio_url: finalAudioUrl // Adiciona a URL do áudio no banco
       }])
       if (errCorr) throw errCorr
 
@@ -128,7 +202,7 @@ export default function CorrigirRedacao() {
             </div>
           </div>
 
-          {/* COLUNA DA NOTA (DIREITA) */}
+          {/* COLUNA DA NOTA E FEEDBACK (DIREITA) */}
           <div className="space-y-8">
             <div className="bg-[#70E0BB] border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
               <div className="space-y-6">
@@ -147,25 +221,62 @@ export default function CorrigirRedacao() {
                   />
                 </div>
 
-                {/* CAMPO FEEDBACK */}
+                {/* CAMPO FEEDBACK TEXTO */}
                 <div className="relative group">
                   <label className="flex items-center gap-2 font-black uppercase italic text-sm mb-2 ml-2">
-                    <MessageSquareText size={18} /> Comentários
+                    <MessageSquareText size={18} /> Comentários (Opcional se enviar áudio)
                   </label>
                   <textarea 
                     placeholder="Dê dicas valiosas para o aluno..." 
                     value={feedback} 
                     onChange={e => setFeedback(e.target.value)}
-                    className="w-full h-64 p-6 bg-white border-4 border-[#1A1A1A] rounded-[30px] font-bold outline-none focus:bg-[#3B82F6]/10 transition-colors italic leading-tight"
+                    className="w-full h-32 p-6 bg-white border-4 border-[#1A1A1A] rounded-[30px] font-bold outline-none focus:bg-[#3B82F6]/10 transition-colors italic leading-tight resize-none"
                   />
+                </div>
+
+                {/* CAMPO FEEDBACK ÁUDIO */}
+                <div className="relative group">
+                  <label className="flex items-center gap-2 font-black uppercase italic text-sm mb-2 ml-2">
+                    <Mic size={18} /> Gravar Áudio
+                  </label>
+                  
+                  {!audioUrl && !isRecording && (
+                    <button 
+                      onClick={startRecording} 
+                      className="w-full py-4 bg-[#A78BFA] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all flex justify-center items-center gap-2"
+                    >
+                      <Mic size={20} /> Iniciar Gravação
+                    </button>
+                  )}
+
+                  {isRecording && (
+                    <button 
+                      onClick={stopRecording} 
+                      className="w-full py-4 bg-[#FF0080] text-white border-4 border-[#1A1A1A] rounded-2xl font-black uppercase italic shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all flex justify-center items-center gap-2 animate-pulse"
+                    >
+                      <Square size={20} fill="currentColor" /> Parar Gravação
+                    </button>
+                  )}
+
+                  {audioUrl && (
+                    <div className="flex flex-col gap-3 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                      <audio src={audioUrl} controls className="w-full outline-none" />
+                      <button 
+                        onClick={discardAudio} 
+                        className="text-red-500 font-bold flex items-center gap-2 justify-center hover:underline uppercase italic text-sm"
+                      >
+                        <Trash2 size={16} /> Excluir e gravar de novo
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* BOTÃO SALVAR */}
                 <button 
                   onClick={salvarNoBanco} 
                   disabled={salvando}
-                  className={`w-full py-6 rounded-full border-4 border-[#1A1A1A] font-black text-2xl uppercase italic shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 ${
-                    salvando ? 'bg-slate-300' : 'bg-[#FF0080] text-white'
+                  className={`w-full py-6 rounded-full border-4 border-[#1A1A1A] font-black text-2xl uppercase italic shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4 ${
+                    salvando ? 'bg-slate-300' : 'bg-[#FFDE03] text-[#1A1A1A]'
                   }`}
                 >
                   {salvando ? 'PROCESSANDO...' : 'SALVAR NOTA'} 
@@ -180,7 +291,7 @@ export default function CorrigirRedacao() {
               <div className="flex items-start gap-3">
                 <Sparkles className="shrink-0" />
                 <p className="text-xs font-black uppercase italic leading-tight opacity-70">
-                  Dica: Seja específico nas competências do ENEM para que o aluno saiba exatamente onde melhorar.
+                  Dica: Seja específico nas competências do ENEM para que o aluno saiba exatamente onde melhorar. O áudio ajuda muito nisso!
                 </p>
               </div>
             </div>

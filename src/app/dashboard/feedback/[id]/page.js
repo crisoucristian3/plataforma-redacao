@@ -10,7 +10,8 @@ import {
   User, 
   ExternalLink,
   Sparkles,
-  Paperclip
+  Paperclip,
+  Headphones // Ícone novo para o áudio
 } from 'lucide-react'
 
 export default function VisualizarFeedback() {
@@ -142,9 +143,33 @@ export default function VisualizarFeedback() {
               <h3 className="font-black uppercase italic text-lg mb-4 flex items-center gap-2 border-b-2 border-[#1A1A1A] pb-2">
                 <MessageSquareText size={20} /> Recado do Prof
               </h3>
-              <p className="text-lg font-bold text-[#1A1A1A] leading-tight italic font-serif">
-                "{correcao?.comentarios || "Sua correção está sendo processada!"}"
-              </p>
+              
+              {/* SE TIVER ÁUDIO, MOSTRA O PLAYER AQUI */}
+              {correcao?.audio_url && (
+                <div className="mb-6 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                  <h4 className="font-black uppercase italic text-sm mb-3 flex items-center gap-2 text-[#3B82F6]">
+                    <Headphones size={18} /> Ouça a correção:
+                  </h4>
+                  <audio 
+                    src={correcao.audio_url} 
+                    controls 
+                    className="w-full h-10 outline-none rounded-lg"
+                  />
+                </div>
+              )}
+
+              {/* TEXTO DE FEEDBACK */}
+              {correcao?.comentarios && (
+                <p className="text-lg font-bold text-[#1A1A1A] leading-tight italic font-serif">
+                  "{correcao.comentarios}"
+                </p>
+              )}
+
+              {!correcao?.comentarios && !correcao?.audio_url && (
+                <p className="text-lg font-bold text-[#1A1A1A] leading-tight italic font-serif opacity-50">
+                  Sua correção está sendo processada!
+                </p>
+              )}
               
               {correcao?.perfis?.nome_completo && (
                 <div className="mt-8 pt-4 border-t-2 border-[#1A1A1A]/10 flex items-center gap-3">

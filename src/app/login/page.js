@@ -9,13 +9,17 @@ import {
   Sparkles, 
   GraduationCap, 
   UserCircle,
-  Key
+  Key,
+  School,
+  Phone
 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nome, setNome] = useState('')
+  const [escola, setEscola] = useState('') // Novo campo
+  const [telefone, setTelefone] = useState('') // Novo campo
   const [tipo, setTipo] = useState('aluno')
   const [chaveProfessor, setChaveProfessor] = useState('')
   const [isReady, setIsReady] = useState(false)
@@ -66,10 +70,13 @@ export default function LoginPage() {
         alert('Erro no Cadastro: ' + error.message);
       } else if (data.user) {
         await new Promise(resolve => setTimeout(resolve, 1500));
+        // SALVANDO NOVOS DADOS NO BANCO
         const { error: pError } = await supabase.from('perfis').insert([{
           id: data.user.id,
           nome_completo: nome,
-          tipo_usuario: tipo
+          tipo_usuario: tipo,
+          escola: escola, // Salva Escola
+          telefone: telefone // Salva Telefone
         }]);
 
         if (pError) {
@@ -91,7 +98,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FF0080] flex items-center justify-center p-6 font-sans selection:bg-[#70E0BB]/30 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FF0080] flex items-center justify-center p-6 font-sans selection:bg-[#70E0BB]/30 relative overflow-y-auto">
       
       {/* Elementos Decorativos de Fundo */}
       <div className="absolute top-[-5%] left-[-5%] rotate-12 opacity-10 pointer-events-none">
@@ -101,7 +108,7 @@ export default function LoginPage() {
         <Pencil size={300} className="text-white" />
       </div>
 
-      <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500 relative z-10">
+      <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500 relative z-10 py-10">
         
         {/* LOGO */}
         <div className="flex items-center justify-center gap-3 mb-8 transform -rotate-2">
@@ -114,26 +121,51 @@ export default function LoginPage() {
         </div>
 
         {/* CARD DE LOGIN */}
-        <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] p-10 shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] relative">
+        <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] p-8 md:p-10 shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] relative">
           
-          {/* Detalhe de "Aba" de caderno no topo */}
-          <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#70E0BB] border-4 border-[#1A1A1A] px-6 py-1 rounded-full font-black uppercase text-sm italic shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+          <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#70E0BB] border-4 border-[#1A1A1A] px-6 py-1 rounded-full font-black uppercase text-sm italic shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] whitespace-nowrap">
             {modoCadastro ? 'Novo Membro' : 'Bem-vindo de volta'}
           </div>
 
-          <form onSubmit={handleAuth} className="mt-4 space-y-6">
+          <form onSubmit={handleAuth} className="mt-4 space-y-4">
             
             {modoCadastro && (
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
-                  <User size={20} strokeWidth={3} />
+              <>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
+                    <User size={20} strokeWidth={3} />
+                  </div>
+                  <input 
+                    type="text" placeholder="Seu Nome Lindo" required 
+                    className="w-full pl-12 p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold placeholder:text-[#1A1A1A]/30 focus:bg-[#FFDE03]/10 outline-none transition-all" 
+                    onChange={(e) => setNome(e.target.value)} 
+                  />
                 </div>
-                <input 
-                  type="text" placeholder="Seu Nome Lindo" required 
-                  className="w-full pl-12 p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold placeholder:text-[#1A1A1A]/30 focus:bg-[#FFDE03]/10 outline-none transition-all" 
-                  onChange={(e) => setNome(e.target.value)} 
-                />
-              </div>
+
+                {/* CAMPO ESCOLA */}
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
+                    <School size={20} strokeWidth={3} />
+                  </div>
+                  <input 
+                    type="text" placeholder="Sua Escola ou Curso" required 
+                    className="w-full pl-12 p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold placeholder:text-[#1A1A1A]/30 focus:bg-[#FFDE03]/10 outline-none transition-all" 
+                    onChange={(e) => setEscola(e.target.value)} 
+                  />
+                </div>
+
+                {/* CAMPO TELEFONE */}
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
+                    <Phone size={20} strokeWidth={3} />
+                  </div>
+                  <input 
+                    type="tel" placeholder="Seu Telefone / WhatsApp" required 
+                    className="w-full pl-12 p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold placeholder:text-[#1A1A1A]/30 focus:bg-[#FFDE03]/10 outline-none transition-all" 
+                    onChange={(e) => setTelefone(e.target.value)} 
+                  />
+                </div>
+              </>
             )}
             
             <div className="relative">
