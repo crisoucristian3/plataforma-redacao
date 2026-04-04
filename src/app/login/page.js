@@ -11,16 +11,22 @@ import {
   UserCircle,
   Key,
   School,
-  Phone
+  Phone,
+  Star,      // CORREÇÃO: Adicionado
+  BookOpen   // CORREÇÃO: Adicionado
 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [nome, setNome] = useState('')
-  const [escola, setEscola] = useState('') // Novo campo
-  const [telefone, setTelefone] = useState('') // Novo campo
+  const [escola, setEscola] = useState('') 
+  const [telefone, setTelefone] = useState('') 
   const [tipo, setTipo] = useState('aluno')
+  
+  // NOVO ESTADO: Nível de Ensino (Padronizado para 'enem' e 'fundamental')
+  const [focoEnsino, setFocoEnsino] = useState('enem') 
+  
   const [chaveProfessor, setChaveProfessor] = useState('')
   const [isReady, setIsReady] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -70,13 +76,15 @@ export default function LoginPage() {
         alert('Erro no Cadastro: ' + error.message);
       } else if (data.user) {
         await new Promise(resolve => setTimeout(resolve, 1500));
-        // SALVANDO NOVOS DADOS NO BANCO
+        
+        // SALVANDO O FOCO DE ENSINO NO BANCO
         const { error: pError } = await supabase.from('perfis').insert([{
           id: data.user.id,
           nome_completo: nome,
           tipo_usuario: tipo,
-          escola: escola, // Salva Escola
-          telefone: telefone // Salva Telefone
+          escola: escola, 
+          telefone: telefone,
+          foco_ensino: tipo === 'aluno' ? focoEnsino : 'todos' // Professor vê tudo por padrão
         }]);
 
         if (pError) {
@@ -101,10 +109,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#FF0080] flex items-center justify-center p-6 font-sans selection:bg-[#70E0BB]/30 relative overflow-y-auto">
       
       {/* Elementos Decorativos de Fundo */}
-      <div className="absolute top-[-5%] left-[-5%] rotate-12 opacity-10 pointer-events-none">
+      <div className="absolute top-[-5%] left-[-5%] rotate-12 opacity-10 pointer-events-none hidden md:block">
         <Sparkles size={300} className="text-white" />
       </div>
-      <div className="absolute bottom-[-5%] right-[-5%] -rotate-12 opacity-10 pointer-events-none">
+      <div className="absolute bottom-[-5%] right-[-5%] -rotate-12 opacity-10 pointer-events-none hidden md:block">
         <Pencil size={300} className="text-white" />
       </div>
 
@@ -142,7 +150,6 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {/* CAMPO ESCOLA */}
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
                     <School size={20} strokeWidth={3} />
@@ -154,7 +161,6 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {/* CAMPO TELEFONE */}
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1A1A1A]/40">
                     <Phone size={20} strokeWidth={3} />
@@ -207,6 +213,29 @@ export default function LoginPage() {
                     className={`flex-1 p-3 rounded-xl border-4 border-[#1A1A1A] font-black uppercase italic transition-all flex items-center justify-center gap-2 ${tipo === 'professor' ? 'bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1' : 'bg-white text-[#555]'}`}
                   >
                     <GraduationCap size={18} /> Prof
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* NOVA ESCOLHA DE NÍVEL PARA O ALUNO */}
+            {modoCadastro && tipo === 'aluno' && (
+              <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                <label className="text-sm font-black uppercase italic tracking-tighter text-[#1A1A1A] ml-2">Meu Foco de Ensino:</label>
+                <div className="flex gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setFocoEnsino('fundamental')} 
+                    className={`flex-1 p-3 rounded-xl border-4 border-[#1A1A1A] font-black uppercase text-xs italic transition-all flex flex-col items-center justify-center gap-1 ${focoEnsino === 'fundamental' ? 'bg-[#A78BFA] text-white shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1' : 'bg-white text-[#555]'}`}
+                  >
+                    <BookOpen size={18} /> Ensino Fundamental
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setFocoEnsino('enem')} 
+                    className={`flex-1 p-3 rounded-xl border-4 border-[#1A1A1A] font-black uppercase text-xs italic transition-all flex flex-col items-center justify-center gap-1 ${focoEnsino === 'enem' ? 'bg-[#FF0080] text-white shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1' : 'bg-white text-[#555]'}`}
+                  >
+                    <Star size={18} /> Pré-Vestibular
                   </button>
                 </div>
               </div>

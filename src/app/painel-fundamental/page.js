@@ -1,0 +1,551 @@
+'use client'
+import { useEffect, useState, useRef } from 'react'
+import { 
+  LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
+  CheckCircle2, Clock, BookOpen, ArrowRight, FileText, Sparkles, 
+  Pencil, Star, StickyNote, Paperclip, Menu, X, AlertCircle, 
+  Headphones, Rocket, Trophy, Gamepad2, School, Bot, MessageCircle, Send, ArrowLeft
+} from 'lucide-react'
+
+// ARRAY DE AVATARES DIVERTIDOS E INCLUSIVOS
+const AVATARES_DISPONIVEIS = [
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Felix&backgroundColor=70E0BB",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Aneka&backgroundColor=FFDE03",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Jude&backgroundColor=A78BFA",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Avery&backgroundColor=FF0080",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Chase&backgroundColor=70E0BB",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Lillian&backgroundColor=FFDE03",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Eliza&backgroundColor=A78BFA",
+  "https://api.dicebear.com/9.x/fun-emoji/svg?seed=Leo&backgroundColor=FF0080"
+];
+
+export default function DashboardFundamental() {
+  const [perfil, setPerfil] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [abaAtiva, setAbaAtiva] = useState('home')
+  const [aulas, setAulas] = useState([])
+  const [temas, setTemas] = useState([]) 
+  const [redacaoSelecionada, setRedacaoSelecionada] = useState(null)
+  const [minhasRedacoes, setMinhasRedacoes] = useState([]) 
+  
+  // --- LOGICA DOS DESAFIOS ADICIONADA ---
+  const [desafios, setDesafios] = useState([])
+  const [respostasEnviadas, setRespostasEnviadas] = useState({}) 
+  const [respondendoId, setRespondendoId] = useState(null)
+  // --------------------------------------
+
+  // DADOS DO PERFIL
+  const [nome, setNome] = useState('')
+  const [escola, setEscola] = useState('') 
+  const [fotoPerfil, setFotoPerfil] = useState(null)
+  const [uploadingFoto, setUploadingFoto] = useState(false)
+  
+  // ESTADOS DE CONTROLE (Mobile e Créditos)
+  const [menuAberto, setMenuAberto] = useState(false)
+  const [creditosRestantes, setCreditosRestantes] = useState(6)
+  const [mostrandoAvatares, setMostrandoAvatares] = useState(false) 
+
+  // ==========================================
+  // ESTADOS DA VIVI (Assistente IA)
+  // ==========================================
+  const [mensagemVivi, setMensagemVivi] = useState('')
+  const [carregandoVivi, setCarregandoVivi] = useState(false)
+  const [historicoVivi, setHistoricoVivi] = useState([
+    { role: 'model', parts: [{ text: 'Oi, explorador! Eu sou a Vivi, sua parceira de aventuras. Quer ajuda para escrever seu texto hoje?' }] }
+  ])
+  const chatFimRef = useRef(null)
+
+  useEffect(() => {
+    if (abaAtiva === 'vivi' && chatFimRef.current) {
+      chatFimRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [historicoVivi, abaAtiva])
+
+  // O ASPIRADOR DE ASTERISCOS: Limpa o texto e pula linha
+  const formatarMensagem = (texto) => {
+    const textoLimpo = texto.replace(/\*/g, '');
+    return textoLimpo.split('\n').map((linha, i) => (
+      <span key={i} className="block mb-2 last:mb-0">
+        {linha}
+      </span>
+    ));
+  };
+
+  const enviarMensagemVivi = async (e) => {
+    e.preventDefault()
+    if (!mensagemVivi.trim()) return
+
+    const novaMensagem = mensagemVivi
+    setMensagemVivi('')
+    
+    const historicoAtualizado = [...historicoVivi, { role: 'user', parts: [{ text: novaMensagem }] }]
+    setHistoricoVivi(historicoAtualizado)
+    setCarregandoVivi(true)
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: novaMensagem,
+          focoEnsino: perfil?.foco_ensino || 'fundamental',
+          historico: historicoVivi
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) throw new Error(data.error)
+      
+      setHistoricoVivi(prev => [...prev, { role: 'model', parts: [{ text: data.resposta }] }])
+    } catch (error) {
+      setHistoricoVivi(prev => [...prev, { role: 'model', parts: [{ text: 'Poxa, deu um erro na minha conexão com o cérebro. Tenta mandar de novo rapidão!' }] }])
+    } finally {
+      setCarregandoVivi(false)
+    }
+  }
+  // ==========================================
+
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+    script.async = true
+    document.body.appendChild(script)
+    script.onload = carregarTudo
+  }, [])
+
+  async function carregarTudo() {
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: p } = await supabase.from('perfis').select('*').eq('id', user.id).single()
+      
+      if (p?.tipo_usuario !== 'aluno' || p?.foco_ensino !== 'fundamental') {
+        window.location.href = '/'
+        return
+      }
+
+      setPerfil(p)
+      setNome(p.nome_completo || '')
+      setFotoPerfil(p.foto_url || AVATARES_DISPONIVEIS[0]) 
+      setEscola(p.escola || '') 
+
+      const { data: a } = await supabase.from('aulas').select('*').eq('foco_ensino', 'fundamental')
+      const aulasMapeadas = (a || []).map(item => ({
+        ...item,
+        video_final: item.url_video || item.video_url,
+        legenda_final: item.conteudo_texto || item.legenda,
+        capa_final: item.capa_url
+      }))
+      setAulas(aulasMapeadas)
+
+      const { data: listaTemas } = await supabase.from('temas_redacao').select('*').eq('foco_ensino', 'fundamental').order('created_at', { ascending: false })
+      setTemas(listaTemas || [])
+
+      // --- BUSCAR DESAFIOS DO BANCO ---
+      const { data: d } = await supabase.from('desafios_kids').select('*').order('created_at', { ascending: false })
+      setDesafios(d || [])
+
+      const { data: r } = await supabase.from('respostas_desafios').select('desafio_id, esta_correto').eq('aluno_id', user.id)
+      const mapaRespostas = {}
+      r?.forEach(item => { mapaRespostas[item.desafio_id] = item.esta_correto })
+      setRespostasEnviadas(mapaRespostas)
+      // -------------------------------
+
+      const { data: red } = await supabase.from('redacoes').select('*, correcoes(*, perfis:professor_id(nome_completo))').eq('aluno_id', user.id).order('data_envio', { ascending: false })
+      setMinhasRedacoes(red || [])
+
+      const dataAtual = new Date();
+      const primeiroDiaDoMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString();
+      const { count } = await supabase.from('redacoes').select('*', { count: 'exact', head: true }).eq('aluno_id', user.id).gte('data_envio', primeiroDiaDoMes);
+      const usados = count || 0;
+      setCreditosRestantes(Math.max(0, 6 - usados)); 
+
+    } else { window.location.href = '/login' }
+    setLoading(false)
+  }
+
+  // --- LÓGICA PARA RESPONDER ---
+  async function responderDesafio(desafio, respostaEscolhida) {
+    if (respostasEnviadas[desafio.id] !== undefined) return 
+    setRespondendoId(desafio.id)
+    const acerto = respostaEscolhida.trim().toLowerCase() === desafio.resposta_correta.trim().toLowerCase()
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    try {
+      await supabase.from('respostas_desafios').insert([{
+        desafio_id: desafio.id,
+        aluno_id: user.id,
+        resposta_aluno: respostaEscolhida,
+        esta_correto: acerto
+      }])
+      setRespostasEnviadas({ ...respostasEnviadas, [desafio.id]: acerto })
+      if (acerto) alert("🌟 MANDOU BEM! Você acertou!")
+      else alert("🔋 Quase lá! Tente o próximo!")
+    } catch (err) { alert("Erro ao enviar.") }
+    setRespondendoId(null)
+  }
+
+  async function handleSalvarPerfil() {
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const { error } = await supabase.from('perfis').update({
+        nome_completo: nome,
+        escola: escola,
+        foto_url: fotoPerfil
+      }).eq('id', user.id)
+      if (error) throw error
+      alert("Seu perfil foi salvo, explorador!")
+    } catch (err) { alert("Erro: " + err.message) }
+  }
+
+  const escolherAvatar = (url) => {
+    setFotoPerfil(url);
+    setMostrandoAvatares(false);
+  }
+
+  if (loading) return (
+    <div className="h-screen bg-[#FDFBF7] flex flex-col items-center justify-center gap-4">
+      <div className="w-12 h-12 border-4 border-[#FF0080] border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-[#333] font-bold animate-pulse font-serif">Preparando a aventura...</p>
+    </div>
+  )
+
+  const SidebarConteudo = () => (
+    <>
+      <div className="absolute top-0 right-0 w-2 h-full bg-[#1A1A1A] opacity-10"></div>
+      <div className="flex items-center justify-between mb-12">
+        <div className="flex items-center gap-3 px-2 transform -rotate-2">
+          <div className="w-12 h-12 bg-[#FFDE03] border-2 border-[#1A1A1A] rounded-2xl flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+            <Rocket size={28} className="text-[#1A1A1A]" />
+          </div>
+          <span className="font-black text-2xl tracking-tighter text-[#1A1A1A]">KIDS<span className="text-[#FF0080]">;</span></span>
+        </div>
+        
+        <button onClick={() => setMenuAberto(false)} className="lg:hidden p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-lg shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+          <X size={24} />
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center p-6 rounded-3xl bg-[#A78BFA]/20 border-4 border-[#1A1A1A] mb-8 shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transform rotate-2">
+        <div className="w-24 h-24 rounded-full border-4 border-[#1A1A1A] p-1 mb-3 bg-white overflow-hidden shadow-inner relative">
+          {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={80} className="text-[#1A1A1A] m-auto mt-1" />}
+        </div>
+        <p className="font-black text-[#1A1A1A] text-xl text-center leading-tight line-clamp-1">{nome.split(' ')[0]}</p>
+        <span className="text-[10px] uppercase font-black bg-[#FFDE03] px-3 py-1 border-2 border-[#1A1A1A] mt-3 rounded-full shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">EXPLORADOR</span>
+      </div>
+
+      <nav className="flex flex-col gap-4 flex-1">
+        <NavItem icon={<LayoutDashboard size={24} strokeWidth={3}/>} label="Home" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Bot size={24} strokeWidth={3}/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi'} onClick={() => {setAbaAtiva('vivi'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Gamepad2 size={24} strokeWidth={3}/>} label="Aventuras" color="#FFDE03" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Trophy size={24} strokeWidth={3}/>} label="Desafios" color="#FF0080" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<UserCircle size={24} strokeWidth={3}/>} label="Meu Perfil" color="#70E0BB" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+      </nav>
+
+      <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-2xl hover:bg-[#FF0080]/10 mt-4"><LogOut size={24} strokeWidth={3} /> <span>Sair do Jogo</span></button>
+    </>
+  )
+
+  return (
+    <div className="flex min-h-screen bg-[#FDFBF7] text-[#1A1A1A] font-sans selection:bg-[#A78BFA]/30 relative">
+      
+      <button onClick={() => setMenuAberto(true)} className="lg:hidden fixed top-6 left-6 z-40 p-3 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all">
+        <Menu size={28} strokeWidth={3} />
+      </button>
+
+      <aside className="w-80 border-r-4 border-[#1A1A1A] bg-[#FFF] p-8 flex flex-col hidden lg:flex relative z-30">
+        <SidebarConteudo />
+      </aside>
+
+      {menuAberto && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-[#1A1A1A]/40 backdrop-blur-sm" onClick={() => setMenuAberto(false)}></div>
+          <aside className="absolute top-0 left-0 h-full w-80 bg-white border-r-4 border-[#1A1A1A] p-8 flex flex-col animate-in slide-in-from-left duration-300">
+            <SidebarConteudo />
+          </aside>
+        </div>
+      )}
+
+      <main className={`flex-1 p-6 md:p-12 overflow-y-auto relative ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
+        <div className="absolute top-10 right-10 opacity-10 pointer-events-none hidden md:block"><Star size={150} className="text-[#FFDE03] fill-[#FFDE03] transform rotate-45" /></div>
+        
+        <div className="h-16 lg:hidden"></div>
+
+        {abaAtiva === 'home' && !redacaoSelecionada && (
+          <div className="max-w-5xl mx-auto space-y-12">
+            
+            <header className="relative">
+               <div className="absolute -top-6 -left-4 w-32 h-10 bg-[#70E0BB]/40 -rotate-2 rounded-xl"></div>
+               <h1 className="text-5xl md:text-7xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Oi, <span className="text-[#A78BFA] drop-shadow-[3px_3px_0px_rgba(26,26,26,1)]">{nome.split(' ')[0]}</span>!</h1>
+               <p className="text-xl md:text-2xl font-bold text-[#555] mt-3 flex items-center gap-2 italic"><Rocket size={24} className="text-[#FF0080]" /> Vamos aprender brincando?</p>
+            </header>
+
+            <div className="p-6 bg-white border-4 border-[#1A1A1A] rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
+              <div className="flex items-center gap-4 text-center sm:text-left">
+                <div className={`p-4 rounded-2xl border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${creditosRestantes > 0 ? 'bg-[#FFDE03]' : 'bg-red-400'}`}>
+                   <Star size={32} className="text-[#1A1A1A] fill-[#1A1A1A]" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-black uppercase italic text-[#1A1A1A]">Suas Fichas de Texto</h4>
+                  <p className="text-sm font-bold opacity-70">Todo mês você ganha novas fichas!</p>
+                </div>
+              </div>
+              <div className="text-4xl font-black bg-[#F9F6F0] px-6 py-3 border-4 border-[#1A1A1A] rounded-2xl shadow-inner text-[#FF0080]">
+                {creditosRestantes} <span className="text-lg uppercase opacity-50 text-[#1A1A1A]">/ 6</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              <div className="relative group p-8 rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
+                <div className="relative z-10 text-white">
+                  <h3 className="text-3xl font-black uppercase mb-2 leading-tight">Falar com<br/>a Vivi</h3>
+                  <p className="font-bold opacity-90 mb-6 text-lg">Sua professora robô super esperta!</p>
+                  <button className="flex items-center justify-between w-full px-6 py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-lg">BATER PAPO <MessageCircle size={24} strokeWidth={3} /></button>
+                </div>
+                <Bot size={180} className="absolute -right-5 -bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform" />
+              </div>
+
+              <div className="relative group p-8 rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
+                <div className="relative z-10 text-[#1A1A1A]">
+                  <h3 className="text-3xl font-black uppercase mb-2 leading-tight">Novas<br/>Aventuras</h3>
+                  <p className="font-bold opacity-80 mb-6 text-lg">Venha assistir as aulas!</p>
+                  <button className="flex items-center justify-between w-full px-6 py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-lg">ASSISTIR <PlayCircle size={24} strokeWidth={3} /></button>
+                </div>
+                <PlayCircle size={180} className="absolute -right-5 -bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform" />
+              </div>
+
+            </div>
+
+            {/* O BOTÃO GIGANTE DE ENVIAR TEXTO QUE VOCÊ PEDIU PARA MANTER: */}
+            <div className="pt-4">
+              <button 
+                onClick={() => window.location.href = '/enviar-redacao'}
+                className="w-full relative group p-8 md:p-12 rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] hover:translate-x-2 hover:translate-y-2 hover:shadow-none transition-all cursor-pointer overflow-hidden text-left"
+              >
+                <div className="relative z-10 text-white flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-4xl md:text-5xl font-black uppercase mb-2 italic">Escrever Meu Texto!</h3>
+                    <p className="font-bold opacity-90 text-lg md:text-xl">Aceite o desafio e envie sua história para o mestre.</p>
+                  </div>
+                  <div className="w-20 h-20 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-full flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group-hover:scale-110 transition-transform">
+                    <Pencil size={40} className="text-[#1A1A1A]" />
+                  </div>
+                </div>
+                <Sparkles size={250} className="absolute -right-10 -bottom-20 text-white/10 transform rotate-12" />
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* ABA DE DESAFIOS (AQUI O ALUNO VÊ OS DESAFIOS POSTADOS)       */}
+        {/* ============================================================ */}
+        {abaAtiva === 'temas' && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-left-8 duration-500">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-12 border-b-8 border-[#FFDE03] inline-block">Quadro de Desafios</h2>
+            <div className="grid gap-10">
+              {desafios.length === 0 ? (
+                <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[40px] text-center shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                  <Trophy size={80} className="mx-auto mb-4 text-[#FFDE03]" />
+                  <p className="font-black text-2xl italic text-[#1A1A1A] uppercase">Sem novos desafios hoje!</p>
+                </div>
+              ) : (
+                desafios.map((d) => (
+                  <div key={d.id} className="bg-white border-4 border-[#1A1A1A] rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] overflow-hidden">
+                    {d.imagem_url && <div className="h-48 md:h-64 border-b-4 border-[#1A1A1A]"><img src={d.imagem_url} className="w-full h-full object-cover" /></div>}
+                    <div className="p-8">
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-2xl font-black uppercase text-[#FF0080]">{d.titulo}</h3>
+                        {respostasEnviadas[d.id] !== undefined && <span className={`px-4 py-1 rounded-full font-black text-xs border-2 border-[#1A1A1A] ${respostasEnviadas[d.id] ? 'bg-[#70E0BB]' : 'bg-red-400'}`}>{respostasEnviadas[d.id] ? 'Completado!' : 'Errado!'}</span>}
+                      </div>
+                      <p className="text-xl font-bold mb-8 italic">"{d.pergunta}"</p>
+                      
+                      {d.tipo_pergunta === 'multipla_escolha' ? (
+                        <div className="grid gap-3">
+                          {d.opcoes?.map((opcao, i) => (
+                            <button key={i} disabled={respostasEnviadas[d.id] !== undefined} onClick={() => responderDesafio(d, opcao)} className={`w-full p-4 rounded-2xl border-4 border-[#1A1A1A] font-black text-left flex justify-between items-center ${respostasEnviadas[d.id] !== undefined ? (opcao === d.resposta_correta ? 'bg-[#70E0BB]' : 'bg-white opacity-50') : 'bg-[#F9F6F0] hover:bg-[#FFDE03]'}`}>{opcao}{respostasEnviadas[d.id] !== undefined && opcao === d.resposta_correta && <CheckCircle2/>}</button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div>
+                          {respostasEnviadas[d.id] === undefined ? (
+                            <form onSubmit={(e) => { e.preventDefault(); responderDesafio(d, e.target.resposta.value); }} className="flex gap-2">
+                              <input name="resposta" placeholder="Digite aqui..." className="flex-1 p-4 rounded-2xl border-4 border-[#1A1A1A] font-bold" required />
+                              <button type="submit" className="bg-[#1A1A1A] text-white px-6 rounded-2xl font-black uppercase">Enviar</button>
+                            </form>
+                          ) : (
+                            <div className="p-4 bg-[#F9F6F0] border-4 border-dashed border-[#1A1A1A] rounded-2xl font-black text-center">Desafio Finalizado!</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'vivi' && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 border-b-8 border-[#A78BFA] inline-block text-[#1A1A1A]">Assistente Virtual</h2>
+            
+            <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] flex flex-col overflow-hidden h-[600px] max-h-[70vh]">
+              
+              <div className="bg-[#A78BFA] border-b-4 border-[#1A1A1A] p-4 flex items-center gap-3">
+                <div className="w-12 h-12 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                  <img src="/vivi.png" alt="Vivi" className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <h4 className="font-black uppercase text-white leading-tight">Vivi</h4>
+                  <p className="text-sm font-bold text-white/90 italic">Pronta para te ajudar com ideias e dicas!</p>
+                </div>
+              </div>
+
+              <div className="flex-1 p-6 overflow-y-auto bg-[#F9F6F0] flex flex-col gap-6">
+                {historicoVivi.map((msg, index) => (
+                  <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-4 rounded-3xl border-4 border-[#1A1A1A] text-base font-medium leading-relaxed shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${msg.role === 'user' ? 'bg-[#FFDE03] rounded-br-none' : 'bg-white rounded-bl-none'}`}>
+                      {formatarMensagem(msg.parts[0].text)}
+                    </div>
+                  </div>
+                ))}
+                {carregandoVivi && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border-4 border-[#1A1A1A] p-4 rounded-3xl rounded-bl-none text-base font-bold animate-pulse text-[#A78BFA] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                      Vivi está digitando...
+                    </div>
+                  </div>
+                )}
+                <div ref={chatFimRef} />
+              </div>
+
+              <form onSubmit={enviarMensagemVivi} className="border-t-4 border-[#1A1A1A] bg-white p-4 sm:p-6 flex gap-4">
+                <input 
+                  type="text" 
+                  value={mensagemVivi}
+                  onChange={(e) => setMensagemVivi(e.target.value)}
+                  placeholder="Pergunte algo para a Vivi..." 
+                  className="flex-1 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl px-6 py-4 text-lg font-bold outline-none focus:bg-[#A78BFA]/10 transition-colors"
+                  disabled={carregandoVivi}
+                />
+                <button 
+                  type="submit"
+                  disabled={carregandoVivi || !mensagemVivi.trim()}
+                  className="bg-[#FF0080] border-4 border-[#1A1A1A] px-6 sm:px-8 py-4 rounded-2xl text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 shrink-0 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 cursor-pointer flex items-center justify-center"
+                >
+                  <Send size={28} strokeWidth={3} />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'aulas' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-12 border-b-8 border-[#A78BFA] inline-block">Galeria de Aventuras</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {aulas.map((aula, idx) => (
+                <div key={aula.id} className={`group border-4 border-[#1A1A1A] rounded-[30px] overflow-hidden hover:-translate-y-2 transition-all cursor-pointer shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] ${idx % 3 === 0 ? 'bg-[#70E0BB]' : idx % 3 === 1 ? 'bg-[#FFDE03]' : 'bg-[#A78BFA]'}`} onClick={() => window.location.href = `/dashboard/aula/${aula.id}`}>
+                  <div className="aspect-video relative border-b-4 border-[#1A1A1A] overflow-hidden bg-white">
+                    {aula.capa_final ? <img src={aula.capa_final} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen size={60} className="text-[#1A1A1A] opacity-20"/></div>}
+                  </div>
+                  <div className="p-5"><h4 className="text-lg font-black text-[#1A1A1A] uppercase leading-tight line-clamp-2">{aula.titulo}</h4></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'perfil' && (
+          <div className="max-w-4xl mx-auto animate-in zoom-in-95 duration-300">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-12 border-b-8 border-[#70E0BB] inline-block">Sua Base Secreta</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              <div className="lg:col-span-1 bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] text-center flex flex-col items-center justify-start">
+                <div className="relative mb-6 cursor-pointer group" onClick={() => setMostrandoAvatares(!mostrandoAvatares)}>
+                  <div className="w-32 h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#F9F6F0] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] relative transition-transform group-hover:scale-105">
+                    <img src={fotoPerfil || AVATARES_DISPONIVEIS[0]} className="w-full h-full object-cover" alt="Seu Avatar" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-[#FFDE03] border-4 border-[#1A1A1A] p-2 rounded-full shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                    <Pencil size={20} strokeWidth={3} />
+                  </div>
+                </div>
+
+                {mostrandoAvatares && (
+                  <div className="bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-4 mb-6 shadow-inner animate-in fade-in duration-200">
+                    <p className="text-xs font-black uppercase mb-3 text-[#FF0080]">Escolha seu personagem:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {AVATARES_DISPONIVEIS.map((url, idx) => (
+                        <div key={idx} onClick={(e) => { e.stopPropagation(); escolherAvatar(url); }} className={`w-12 h-12 rounded-full border-2 border-[#1A1A1A] cursor-pointer hover:scale-110 transition-transform overflow-hidden ${fotoPerfil === url ? 'ring-4 ring-[#FF0080]' : ''}`}>
+                          <img src={url} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="w-full space-y-4">
+                  <input className="w-full bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-3 text-center text-lg font-black uppercase outline-none focus:bg-[#70E0BB]/20" value={nome} onChange={e => setNome(e.target.value)} />
+                  <input className="w-full bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-3 text-center text-base font-bold uppercase outline-none focus:bg-[#70E0BB]/20" placeholder="Nome da Escola" value={escola} onChange={e => setEscola(e.target.value)} />
+                  <button onClick={handleSalvarPerfil} className="w-full py-4 bg-[#FF0080] text-white rounded-2xl font-black uppercase italic border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all mt-2">Salvar Tudo</button>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                <h3 className="text-2xl font-black uppercase text-[#1A1A1A] mb-6 flex items-center gap-2"><StickyNote className="text-[#FF0080]" size={28} strokeWidth={3} /> Meus Textos Antigos</h3>
+                <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2">
+                  {minhasRedacoes.map(r => (
+                    <div key={r.id} onClick={() => setRedacaoSelecionada(r)} className="flex items-center justify-between p-4 rounded-2xl bg-[#F9F6F0] border-4 border-[#1A1A1A] hover:-translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl border-4 border-[#1A1A1A] flex items-center justify-center ${r.status === 'corrigido' ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`}>{r.status === 'corrigido' ? <CheckCircle2 size={24} strokeWidth={3} /> : <Clock size={24} strokeWidth={3} />}</div>
+                        <p className="text-base sm:text-lg font-black uppercase tracking-tight line-clamp-1">{r.titulo || 'Sem título'}</p>
+                      </div>
+                      <ChevronRight size={24} strokeWidth={4} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {redacaoSelecionada && (
+          <div className="max-w-5xl mx-auto animate-in zoom-in-95 duration-500">
+            <button onClick={() => setRedacaoSelecionada(null)} className="flex items-center gap-2 font-black text-xl text-[#1A1A1A] mb-8 hover:text-[#FF0080] transition-colors uppercase italic"><ArrowLeft size={24} strokeWidth={3} /> Voltar para Base</button>
+            <div className="flex flex-col lg:flex-row gap-10">
+              <div className="flex-1 bg-white border-4 border-[#1A1A1A] p-8 md:p-12 rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] transform -rotate-1 relative">
+                <h1 className="text-3xl md:text-4xl font-black uppercase text-[#1A1A1A] mb-6 border-b-4 border-dashed border-[#1A1A1A]/20 pb-4 leading-tight">{redacaoSelecionada.titulo}</h1>
+                <p className="text-lg md:text-xl font-medium text-[#333] leading-relaxed whitespace-pre-wrap font-serif italic">{redacaoSelecionada.texto_redacao || "Você mandou uma foto/arquivo para o mestre."}</p>
+              </div>
+              <div className="lg:w-80 space-y-8 transform rotate-1">
+                <div className="p-8 rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] text-center">
+                  <span className="text-lg font-black uppercase tracking-tighter text-[#1A1A1A]">Sua Pontuação</span>
+                  <h2 className="text-7xl font-black text-[#1A1A1A] my-4 leading-none">{redacaoSelecionada.correcoes?.[0]?.nota || '?'}</h2>
+                  <p className="text-xs font-black uppercase italic">Mestre {redacaoSelecionada.correcoes?.[0]?.perfis?.nome_completo || '...'}</p>
+                </div>
+                <div className="p-8 rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                  <h3 className="text-xl font-black uppercase mb-4 flex items-center gap-2 border-b-4 border-[#1A1A1A] pb-2"><Sparkles size={24} strokeWidth={3} /> Dica do Mestre</h3>
+                  <p className="text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "O mestre ainda está lendo sua história..."}"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+function NavItem({ icon, label, active, onClick, color }) {
+  return (
+    <button onClick={onClick} className={`flex items-center gap-4 px-6 py-4 rounded-3xl font-black uppercase italic text-xl border-4 transition-all ${active ? `bg-[${color}] text-[#1A1A1A] border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1` : 'text-[#555] border-transparent hover:border-[#1A1A1A] hover:bg-white'}`} style={active ? {backgroundColor: color} : {}}>{icon} <span>{label}</span></button>
+  )
+}

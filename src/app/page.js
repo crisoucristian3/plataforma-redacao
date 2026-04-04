@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { 
   LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
   GraduationCap, CheckCircle2, Clock, BookOpen, ArrowRight, 
   FileText, Sparkles, Pencil, Star, StickyNote, Paperclip, Camera,
-  Menu, X, AlertCircle, Headphones // <-- Ícone novo adicionado aqui
+  Menu, X, AlertCircle, Headphones, MessageCircle, Send, Bot, Trophy
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -21,9 +21,63 @@ export default function Dashboard() {
   const [fotoPerfil, setFotoPerfil] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [menuAberto, setMenuAberto] = useState(false)
-  
-  // NOVO: Estado dos créditos
   const [creditosRestantes, setCreditosRestantes] = useState(6)
+  
+  // NOVO ESTADO PARA ALUNO DESTAQUE
+  const [alunoDestaque, setAlunoDestaque] = useState(null)
+
+  // ==========================================
+  // ESTADOS DA VIVI
+  // ==========================================
+  const [mensagemVivi, setMensagemVivi] = useState('')
+  const [carregandoVivi, setCarregandoVivi] = useState(false)
+  const [historicoVivi, setHistoricoVivi] = useState([
+    { role: 'model', parts: [{ text: 'Fala, cara! Eu sou a Vivi, sua parceira de escrita. Bora destravar essa redação? Como posso te ajudar hoje?' }] }
+  ])
+  const chatFimRef = useRef(null)
+
+  useEffect(() => {
+    if (abaAtiva === 'vivi' && chatFimRef.current) {
+      chatFimRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [historicoVivi, abaAtiva])
+
+  const formatarMensagem = (texto) => {
+    const textoLimpo = texto.replace(/\*/g, '');
+    return textoLimpo.split('\n').map((linha, index) => (
+      <span key={index} className="block mb-2 last:mb-0">
+        {linha}
+      </span>
+    ));
+  };
+
+  const enviarMensagemVivi = async (e) => {
+    e.preventDefault()
+    if (!mensagemVivi.trim()) return
+    const novaMensagem = mensagemVivi
+    setMensagemVivi('')
+    const historicoAtualizado = [...historicoVivi, { role: 'user', parts: [{ text: novaMensagem }] }]
+    setHistoricoVivi(historicoAtualizado)
+    setCarregandoVivi(true)
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: novaMensagem,
+          focoEnsino: perfil?.foco_ensino || 'enem',
+          historico: historicoVivi
+        })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
+      setHistoricoVivi(prev => [...prev, { role: 'model', parts: [{ text: data.resposta }] }])
+    } catch (error) {
+      setHistoricoVivi(prev => [...prev, { role: 'model', parts: [{ text: 'Poxa, deu um erro na minha conexão com o cérebro. Tenta mandar de novo rapidão!' }] }])
+    } finally {
+      setCarregandoVivi(false)
+    }
+  }
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -40,6 +94,10 @@ export default function Dashboard() {
     if (user) {
       const { data: p } = await supabase.from('perfis').select('*').eq('id', user.id).single()
       
+      if (p?.tipo_usuario === 'aluno' && p?.foco_ensino === 'fundamental') {
+        window.location.href = '/painel-fundamental'
+        return
+      }
       if (p?.tipo_usuario === 'professor' && window.location.pathname === '/') {
         window.location.href = '/painel-professor'
         return
@@ -53,7 +111,9 @@ export default function Dashboard() {
         setEscolaridade(p.escolaridade || '');
       }
 
-      const { data: a } = await supabase.from('aulas').select('*')
+      const focoDoAluno = p?.foco_ensino || 'enem'; 
+
+      const { data: a } = await supabase.from('aulas').select('*').eq('foco_ensino', focoDoAluno)
       const aulasMapeadas = (a || []).map(item => ({
         ...item,
         video_final: item.url_video || item.video_url,
@@ -62,29 +122,37 @@ export default function Dashboard() {
       }))
       setAulas(aulasMapeadas)
 
-      const { data: listaTemas } = await supabase.from('temas_redacao').select('*').order('created_at', { ascending: false })
+      const { data: listaTemas } = await supabase.from('temas_redacao').select('*').eq('foco_ensino', focoDoAluno).order('created_at', { ascending: false })
       setTemas(listaTemas || [])
 
       if (p?.tipo_usuario === 'aluno') {
-        const { data: red } = await supabase
-          .from('redacoes')
-          .select('*, correcoes(*, perfis:professor_id(nome_completo))')
-          .eq('aluno_id', user.id)
-          .order('data_envio', { ascending: false })
+        const { data: red } = await supabase.from('redacoes').select('*, correcoes(*, perfis:professor_id(nome_completo))').eq('aluno_id', user.id).order('data_envio', { ascending: false })
         setMinhasRedacoes(red || [])
 
-        // NOVO: LÓGICA DE CÁLCULO DE CRÉDITOS DO MÊS ATUAL
         const dataAtual = new Date();
         const primeiroDiaDoMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1).toISOString();
-
-        const { count } = await supabase
-          .from('redacoes')
-          .select('*', { count: 'exact', head: true })
-          .eq('aluno_id', user.id)
-          .gte('data_envio', primeiroDiaDoMes);
-
+        const { count } = await supabase.from('redacoes').select('*', { count: 'exact', head: true }).eq('aluno_id', user.id).gte('data_envio', primeiroDiaDoMes);
         const usados = count || 0;
-        setCreditosRestantes(Math.max(0, 6 - usados)); // Garante que não fique negativo
+        setCreditosRestantes(Math.max(0, 6 - usados)); 
+
+        // LÓGICA DO ALUNO DESTAQUE (Mês Atual)
+        const { data: topCorrecao } = await supabase
+          .from('correcoes')
+          .select('redacoes!inner(aluno_id, foco_ensino), nota')
+          .eq('redacoes.foco_ensino', focoDoAluno)
+          .gte('created_at', primeiroDiaDoMes)
+          .order('nota', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (topCorrecao) {
+          const { data: pDestaque } = await supabase
+            .from('perfis')
+            .select('nome_completo, foto_url')
+            .eq('id', topCorrecao.redacoes.aluno_id)
+            .single()
+          if (pDestaque) setAlunoDestaque(pDestaque)
+        }
       }
     } else { window.location.href = '/login' }
     setLoading(false)
@@ -147,21 +215,25 @@ export default function Dashboard() {
 
       <div className="flex flex-col items-center p-6 rounded-2xl bg-[#70E0BB]/20 border-2 border-[#1A1A1A] mb-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
         <div className="w-20 h-20 rounded-full border-4 border-[#1A1A1A] p-1 mb-3 bg-white overflow-hidden shadow-inner relative">
-          {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover" /> : <UserCircle size={64} className="text-[#1A1A1A]" />}
-          {uploadingFoto && <div className="absolute inset-0 bg-white/60 flex items-center justify-center"><div className="w-5 h-5 border-2 border-[#FF0080] border-t-transparent rounded-full animate-spin"></div></div>}
+          {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={64} className="text-[#1A1A1A]" />}
+          {uploadingFoto && <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-full"><div className="w-5 h-5 border-2 border-[#FF0080] border-t-transparent rounded-full animate-spin"></div></div>}
         </div>
         <p className="font-black text-[#1A1A1A] text-center leading-tight">{nome}</p>
         <span className="text-[10px] uppercase font-black bg-[#FFDE03] px-2 py-0.5 border border-[#1A1A1A] mt-2 rounded">ALUNO</span>
+        <span className="text-[9px] uppercase font-bold text-[#555] mt-1 tracking-wider">
+          {perfil?.foco_ensino === 'fundamental' ? 'FUNDAMENTAL' : 'PRÉ-VESTIBULAR'}
+        </span>
       </div>
 
       <nav className="flex flex-col gap-4 flex-1">
         <NavItem icon={<LayoutDashboard size={22}/>} label="Início" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Bot size={22}/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi'} onClick={() => {setAbaAtiva('vivi'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<PlayCircle size={22}/>} label="Aulas" color="#70E0BB" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<FileText size={22}/>} label="Temas" color="#FFDE03" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<UserCircle size={22}/>} label="Perfil" color="#A78BFA" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<UserCircle size={22}/>} label="Perfil" color="#FFA07A" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
       </nav>
 
-      <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl hover:bg-[#FF0080]/10"><LogOut size={22} /> <span>Sair</span></button>
+      <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl hover:bg-[#FF0080]/10 mt-4"><LogOut size={22} /> <span>Sair</span></button>
     </>
   )
 
@@ -175,12 +247,12 @@ export default function Dashboard() {
         <Menu size={28} strokeWidth={3} />
       </button>
 
-      <aside className="w-72 border-r-4 border-[#1A1A1A] bg-[#FFF] p-8 flex flex-col hidden lg:flex relative">
+      <aside className="w-72 border-r-4 border-[#1A1A1A] bg-[#FFF] p-8 flex flex-col hidden lg:flex relative z-10">
         <SidebarConteudo />
       </aside>
 
       {menuAberto && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-[#1A1A1A]/40 backdrop-blur-sm" onClick={() => setMenuAberto(false)}></div>
           <aside className="absolute top-0 left-0 h-full w-72 bg-white border-r-4 border-[#1A1A1A] p-8 flex flex-col animate-in slide-in-from-left duration-300">
             <SidebarConteudo />
@@ -188,7 +260,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className={`flex-1 p-8 lg:p-12 overflow-y-auto relative ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
+      <main className={`flex-1 p-8 lg:p-12 overflow-y-auto relative pb-32 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
         <div className="absolute top-10 right-10 opacity-10 pointer-events-none"><Sparkles size={120} className="text-[#FF0080] animate-pulse" /></div>
         
         <div className="h-16 lg:hidden"></div>
@@ -201,7 +273,6 @@ export default function Dashboard() {
                <p className="text-lg md:text-xl font-bold text-[#555] mt-2 flex items-center gap-2 italic"><Star size={20} className="text-[#FFDE03] fill-[#FFDE03]" /> Pronto para o próximo nível?</p>
             </header>
 
-            {/* NOVO: AVISO DE CRÉDITOS */}
             <div className="mb-8 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
               <div className="flex items-center gap-3">
                 <div className={`p-3 rounded-xl border-2 border-[#1A1A1A] ${creditosRestantes > 0 ? 'bg-[#70E0BB]' : 'bg-red-400'}`}>
@@ -217,24 +288,61 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
               <div className="relative group p-8 rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => window.location.href = '/enviar-redacao'}>
                 <div className="relative z-10 text-white">
-                  <h3 className="text-2xl md:text-3xl font-black uppercase mb-2">Enviar Redação</h3>
-                  <p className="font-bold opacity-90 mb-6 text-base md:text-lg">Seu texto corrigido por quem entende!</p>
-                  <button className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-lg md:text-xl">COMEÇAR <ArrowRight size={24} strokeWidth={3} /></button>
+                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Enviar<br/>Redação</h3>
+                  <p className="font-bold opacity-90 mb-6 text-sm">Seu texto corrigido por quem entende!</p>
+                  <button className="flex items-center justify-between w-full px-6 py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">COMEÇAR <ArrowRight size={20} strokeWidth={3} /></button>
                 </div>
-                <Paperclip size={180} className="absolute -right-10 -bottom-10 text-white/20 transform rotate-12" />
+                <Paperclip size={140} className="absolute -right-5 -bottom-5 text-white/20 transform rotate-12 group-hover:scale-110 transition-transform" />
               </div>
+
               <div className="relative group p-8 rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
                 <div className="relative z-10 text-[#1A1A1A]">
-                  <h3 className="text-2xl md:text-3xl font-black uppercase mb-2">Continuar Aulas</h3>
-                  <p className="font-bold opacity-80 mb-6 text-base md:text-lg">Retome de onde você parou.</p>
-                  <button className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-lg md:text-xl">ASSISTIR <PlayCircle size={24} strokeWidth={3} /></button>
+                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Continuar<br/>Aulas</h3>
+                  <p className="font-bold opacity-80 mb-6 text-sm">Retome de onde você parou.</p>
+                  <button className="flex items-center justify-between w-full px-6 py-3 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">ASSISTIR <PlayCircle size={20} strokeWidth={3} /></button>
                 </div>
-                <PlayCircle size={180} className="absolute -right-10 -bottom-10 text-[#1A1A1A]/10 transform rotate-45" />
+                <PlayCircle size={140} className="absolute -right-5 -bottom-5 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform" />
+              </div>
+
+              <div className="relative group p-8 rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
+                <div className="relative z-10 text-white">
+                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Falar com<br/>a Vivi</h3>
+                  <p className="font-bold opacity-90 mb-6 text-sm">Dicas e ideias com a IA da plataforma!</p>
+                  <button className="flex items-center justify-between w-full px-6 py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">BATER PAPO <MessageCircle size={20} strokeWidth={3} /></button>
+                </div>
+                <Bot size={140} className="absolute -right-5 -bottom-5 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform" />
               </div>
             </div>
+
+            {/* SEÇÃO: ALUNO DESTAQUE DO MÊS */}
+            {alunoDestaque && (
+              <div className="mb-12 bg-white border-4 border-[#1A1A1A] rounded-[40px] p-8 shadow-[10px_10px_0px_0px_rgba(26,26,26,1)] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 transform translate-x-4 -translate-y-4">
+                  <Trophy size={120} className="text-[#FFDE03] opacity-20 group-hover:rotate-12 transition-transform" />
+                </div>
+                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                  <div className="relative">
+                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      {alunoDestaque.foto_url ? <img src={alunoDestaque.foto_url} className="w-full h-full object-cover" alt="Avatar" /> : <UserCircle size={100} className="m-auto text-[#1A1A1A]" />}
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 bg-white border-2 border-[#1A1A1A] p-2 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Star size={20} className="fill-[#FFDE03] text-[#1A1A1A]" />
+                    </div>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-1">Destaque do Mês 🏆</h3>
+                    <p className="text-xl md:text-2xl font-bold text-[#555] italic leading-tight">
+                      Parabéns, <span className="text-[#FF0080] underline decoration-4 decoration-[#70E0BB]">{alunoDestaque.nome_completo}</span>!<br/>
+                      Sua dedicação está servindo de inspiração para todos!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] p-6 md:p-10 shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
               <h3 className="text-2xl md:text-3xl font-black uppercase text-[#1A1A1A] mb-8 border-b-4 border-dashed border-[#1A1A1A] pb-4 flex items-center gap-2"><StickyNote className="text-[#FF0080]" size={28} strokeWidth={3} /> Seu Histórico</h3>
               <div className="grid gap-6">
@@ -252,6 +360,33 @@ export default function Dashboard() {
           </div>
         )}
 
+        {abaAtiva === 'vivi' && (
+          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
+            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 border-b-8 border-[#A78BFA] inline-block text-[#1A1A1A]">Assistente Virtual</h2>
+            <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] flex flex-col overflow-hidden h-[600px] max-h-[70vh]">
+              <div className="bg-[#A78BFA] border-b-4 border-[#1A1A1A] p-4 flex items-center gap-3">
+                <div className="w-12 h-12 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                  <img src="/vivi.png" alt="Vivi" className="w-full h-full object-cover" />
+                </div>
+                <div><h4 className="font-black uppercase text-white leading-tight">Vivi</h4><p className="text-sm font-bold text-white/90 italic">Pronta para te ajudar com ideias e dicas!</p></div>
+              </div>
+              <div className="flex-1 p-6 overflow-y-auto bg-[#F9F6F0] flex flex-col gap-6">
+                {historicoVivi.map((msg, index) => (
+                  <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] p-4 rounded-3xl border-4 border-[#1A1A1A] text-base md:text-lg font-medium leading-relaxed shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${msg.role === 'user' ? 'bg-[#FFDE03] rounded-br-none' : 'bg-white rounded-bl-none'}`}>{formatarMensagem(msg.parts[0].text)}</div>
+                  </div>
+                ))}
+                {carregandoVivi && (<div className="flex justify-start"><div className="bg-white border-4 border-[#1A1A1A] p-4 rounded-3xl rounded-bl-none text-base font-bold animate-pulse text-[#A78BFA] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">Vivi está digitando...</div></div>)}
+                <div ref={chatFimRef} />
+              </div>
+              <form onSubmit={enviarMensagemVivi} className="border-t-4 border-[#1A1A1A] bg-white p-4 sm:p-6 flex gap-4">
+                <input type="text" value={mensagemVivi} onChange={(e) => setMensagemVivi(e.target.value)} placeholder="Pergunte algo para a Vivi..." className="flex-1 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl px-6 py-4 text-lg font-bold outline-none focus:bg-[#A78BFA]/10 transition-colors" disabled={carregandoVivi} />
+                <button type="submit" disabled={carregandoVivi || !mensagemVivi.trim()} className="bg-[#FF0080] border-4 border-[#1A1A1A] px-6 sm:px-8 py-4 rounded-2xl text-white hover:bg-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center"><Send size={28} strokeWidth={3} /></button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {abaAtiva === 'perfil' && (
           <div className="max-w-2xl mx-auto">
             <h2 className="text-4xl font-black uppercase italic text-[#1A1A1A] mb-8">Dados do Aluno</h2>
@@ -259,7 +394,7 @@ export default function Dashboard() {
                <div className="flex flex-col items-center pb-8 border-b-4 border-dashed border-[#1A1A1A]">
                 <div className="relative group">
                   <div className="w-32 h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] relative">
-                    {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover" /> : <UserCircle size={120} className="text-[#1A1A1A]" />}
+                    {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={120} className="text-[#1A1A1A]" />}
                   </div>
                   <label className="absolute -bottom-2 -right-2 bg-white border-2 border-[#1A1A1A] p-2 rounded-full cursor-pointer hover:bg-[#70E0BB] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
                     <Camera size={20} /><input type="file" className="hidden" accept="image/*" onChange={handleUploadFoto} disabled={uploadingFoto} />
@@ -313,35 +448,21 @@ export default function Dashboard() {
           <div className="max-w-6xl mx-auto animate-in slide-in-from-left-8 duration-500">
             <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-12 border-b-8 border-[#FFDE03] inline-block">Propostas de Redação</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {temas.length === 0 ? (
-                <div className="col-span-1 md:col-span-2 bg-white border-4 border-[#1A1A1A] p-10 rounded-[40px] text-center shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
-                  <FileText size={60} className="mx-auto mb-4 text-[#1A1A1A]/30" />
-                  <p className="font-black text-xl italic text-[#1A1A1A]/50 uppercase">Nenhum tema foi publicado ainda.</p>
-                </div>
-              ) : (
-                temas.map((tema) => (
-                  <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 transition-all flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-2xl font-black uppercase leading-tight mb-4 text-[#FF0080]">{tema.titulo}</h3>
-                      {tema.descricao && (
-                        <p className="text-base font-medium italic mb-6 text-[#333] border-l-4 border-[#FFDE03] pl-4">{tema.descricao}</p>
-                      )}
-                    </div>
-                    
-                    <div className="mt-4 pt-6 border-t-4 border-dashed border-[#1A1A1A]/20">
-                      {tema.arquivo_apoio_url ? (
-                        <a href={tema.arquivo_apoio_url} target="_blank" className="w-full flex items-center justify-center gap-3 py-4 bg-[#70E0BB] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]">
-                          <FileText size={24} /> Ler Textos de Apoio
-                        </a>
-                      ) : (
-                         <span className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9F6F0] border-4 border-[#1A1A1A]/30 rounded-2xl font-black uppercase text-sm text-[#1A1A1A]/50 cursor-not-allowed">
-                          Sem material de apoio
-                        </span>
-                      )}
-                    </div>
+              {temas.map((tema) => (
+                <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 transition-all flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-2xl font-black uppercase leading-tight mb-4 text-[#FF0080]">{tema.titulo}</h3>
+                    {tema.descricao && (<p className="text-base font-medium italic mb-6 text-[#333] border-l-4 border-[#FFDE03] pl-4">{tema.descricao}</p>)}
                   </div>
-                ))
-              )}
+                  <div className="mt-4 pt-6 border-t-4 border-dashed border-[#1A1A1A]/20">
+                    {tema.arquivo_apoio_url ? (
+                      <a href={tema.arquivo_apoio_url} target="_blank" className="w-full flex items-center justify-center gap-3 py-4 bg-[#70E0BB] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]">
+                        <FileText size={24} /> Ler Textos de Apoio
+                      </a>
+                    ) : (<span className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9F6F0] border-4 border-[#1A1A1A]/30 rounded-2xl font-black uppercase text-sm text-[#1A1A1A]/50 cursor-not-allowed">Sem material de apoio</span>)}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -363,21 +484,12 @@ export default function Dashboard() {
                 </div>
                 <div className="p-6 md:p-8 rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
                   <h3 className="text-lg md:text-xl font-black uppercase mb-4 flex items-center gap-2 border-b-2 border-[#1A1A1A] pb-2"><Sparkles size={20} /> FEEDBACK</h3>
-                  
-                  {/* NOVO: PLAYER DE ÁUDIO AQUI */}
                   {redacaoSelecionada.correcoes?.[0]?.audio_url && (
                     <div className="mb-6 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
-                      <h4 className="font-black uppercase italic text-sm mb-3 flex items-center gap-2 text-[#3B82F6]">
-                        <Headphones size={18} /> Ouça a correção:
-                      </h4>
-                      <audio 
-                        src={redacaoSelecionada.correcoes[0].audio_url} 
-                        controls 
-                        className="w-full h-10 outline-none rounded-lg"
-                      />
+                      <h4 className="font-black uppercase italic text-sm mb-3 flex items-center gap-2 text-[#3B82F6]"><Headphones size={18} /> Ouça a correção:</h4>
+                      <audio src={redacaoSelecionada.correcoes[0].audio_url} controls className="w-full h-10 outline-none rounded-lg" />
                     </div>
                   )}
-
                   <p className="text-base md:text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "Aguardando correção..."}"</p>
                 </div>
               </div>

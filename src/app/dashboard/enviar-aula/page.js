@@ -8,7 +8,8 @@ import {
   BookOpen, 
   Type, 
   FileText, 
-  Sparkles 
+  Sparkles,
+  Users // Ícone para o Público-Alvo
 } from 'lucide-react'
 
 export default function EnviarAula() {
@@ -19,6 +20,8 @@ export default function EnviarAula() {
   const [enviando, setEnviando] = useState(false)
   const [cursos, setCursos] = useState([])
   const [cursoSelecionado, setCursoSelecionado] = useState('')
+  // NOVO ESTADO: Público-Alvo (foco_ensino)
+  const [focoEnsino, setFocoEnsino] = useState('enem') 
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -65,12 +68,14 @@ export default function EnviarAula() {
       const urlVideo = await executarUpload(arquivoVideo, 'videos')
       const urlCapa = await executarUpload(arquivoCapa, 'capas')
 
+      // ATUALIZADO: Incluindo foco_ensino no insert
       const { error: dbError } = await supabase.from('aulas').insert([{
         titulo: titulo,
         conteudo_texto: conteudo,
         url_video: urlVideo,
         capa_url: urlCapa,
-        curso_id: cursoSelecionado
+        curso_id: cursoSelecionado,
+        foco_ensino: focoEnsino 
       }])
 
       if (dbError) throw dbError
@@ -118,18 +123,35 @@ export default function EnviarAula() {
             <div className="bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[10px_10px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
               <div className="space-y-6">
                 
-                {/* SELECT CURSO */}
-                <div className="relative group">
-                  <label className="flex items-center gap-2 font-black uppercase italic text-sm mb-2 ml-2">
-                    <BookOpen size={16} /> Selecione o Curso
-                  </label>
-                  <select 
-                    value={cursoSelecionado} 
-                    onChange={e => setCursoSelecionado(e.target.value)}
-                    className="w-full p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold outline-none appearance-none cursor-pointer focus:bg-[#A78BFA]/10"
-                  >
-                    {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* SELECT CURSO */}
+                  <div className="relative group">
+                    <label className="flex items-center gap-2 font-black uppercase italic text-sm mb-2 ml-2">
+                      <BookOpen size={16} /> Selecione o Curso
+                    </label>
+                    <select 
+                      value={cursoSelecionado} 
+                      onChange={e => setCursoSelecionado(e.target.value)}
+                      className="w-full p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold outline-none appearance-none cursor-pointer focus:bg-[#A78BFA]/10"
+                    >
+                      {cursos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+
+                  {/* NOVO: SELECT PÚBLICO-ALVO */}
+                  <div className="relative group">
+                    <label className="flex items-center gap-2 font-black uppercase italic text-sm mb-2 ml-2">
+                      <Users size={16} /> Público-Alvo
+                    </label>
+                    <select 
+                      value={focoEnsino} 
+                      onChange={e => setFocoEnsino(e.target.value)}
+                      className="w-full p-4 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl font-bold outline-none appearance-none cursor-pointer focus:bg-[#A78BFA]/10"
+                    >
+                      <option value="enem">Pré-Vestibular / ENEM</option>
+                      <option value="fundamental">Ensino Fundamental</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* INPUT TITULO */}
