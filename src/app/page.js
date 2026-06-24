@@ -4,7 +4,7 @@ import {
   LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
   GraduationCap, CheckCircle2, Clock, BookOpen, ArrowRight, 
   FileText, Sparkles, Pencil, Star, StickyNote, Paperclip, Camera,
-  Menu, X, AlertCircle, Headphones, MessageCircle, Send, Bot, Trophy
+  Menu, X, AlertCircle, Headphones, MessageCircle, Send, Bot, Trophy, LifeBuoy
 } from 'lucide-react'
 
 export default function Dashboard() {
@@ -192,48 +192,52 @@ export default function Dashboard() {
   }
 
   if (loading) return (
-    <div className="h-screen bg-[#FDFBF7] flex flex-col items-center justify-center gap-4">
+    <div className="h-screen bg-[#FDFBF7] flex flex-col items-center justify-center gap-4 p-4">
       <div className="w-12 h-12 border-4 border-[#FF0080] border-t-transparent rounded-full animate-spin"></div>
-      <p className="text-[#333] font-bold animate-pulse font-serif">Preparando seu material...</p>
+      <p className="text-[#333] font-bold animate-pulse font-serif text-center">Preparando seu material...</p>
     </div>
   )
 
   const SidebarConteudo = () => (
     <>
-      <div className="absolute top-0 right-0 w-2 h-full bg-[#1A1A1A] opacity-10"></div>
-      <div className="flex items-center justify-between mb-12">
-        <div className="flex items-center gap-3 px-2 transform -rotate-2">
-          <div className="w-12 h-12 bg-[#FF0080] border-2 border-[#1A1A1A] rounded-lg flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
-            <Pencil size={24} className="text-white" />
+      <div className="absolute top-0 right-0 w-2 h-full bg-[#1A1A1A] opacity-10 hidden lg:block"></div>
+      <div className="flex items-center justify-between mb-8 md:mb-12 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 px-2 transform -rotate-2">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-[#FF0080] border-2 border-[#1A1A1A] rounded-lg flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+            <Pencil size={20} className="text-white md:w-6 md:h-6" />
           </div>
-          <span className="font-black text-1xl tracking-tighter text-[#1A1A1A]">PONTO<span className="text-[#FF0080]">&</span>VÍRGULA</span>
+          <span className="font-black text-lg md:text-xl tracking-tighter text-[#1A1A1A]">PONTO<span className="text-[#FF0080]">&</span>VÍRGULA</span>
         </div>
         <button onClick={() => setMenuAberto(false)} className="lg:hidden p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-lg shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
-          <X size={24} />
+          <X size={20} />
         </button>
       </div>
 
-      <div className="flex flex-col items-center p-6 rounded-2xl bg-[#70E0BB]/20 border-2 border-[#1A1A1A] mb-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
-        <div className="w-20 h-20 rounded-full border-4 border-[#1A1A1A] p-1 mb-3 bg-white overflow-hidden shadow-inner relative">
+      <div className="flex flex-col items-center p-4 md:p-6 rounded-2xl bg-[#70E0BB]/20 border-2 border-[#1A1A1A] mb-6 md:mb-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1 shrink-0">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-4 border-[#1A1A1A] p-1 mb-2 md:mb-3 bg-white overflow-hidden shadow-inner relative">
           {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={64} className="text-[#1A1A1A]" />}
           {uploadingFoto && <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-full"><div className="w-5 h-5 border-2 border-[#FF0080] border-t-transparent rounded-full animate-spin"></div></div>}
         </div>
-        <p className="font-black text-[#1A1A1A] text-center leading-tight">{nome}</p>
-        <span className="text-[10px] uppercase font-black bg-[#FFDE03] px-2 py-0.5 border border-[#1A1A1A] mt-2 rounded">ALUNO</span>
-        <span className="text-[9px] uppercase font-bold text-[#555] mt-1 tracking-wider">
+        <p className="font-black text-[#1A1A1A] text-center leading-tight text-sm md:text-base">{nome}</p>
+        <span className="text-[9px] md:text-[10px] uppercase font-black bg-[#FFDE03] px-2 py-0.5 border border-[#1A1A1A] mt-2 rounded">ALUNO</span>
+        <span className="text-[8px] md:text-[9px] uppercase font-bold text-[#555] mt-1 tracking-wider text-center">
           {perfil?.foco_ensino === 'fundamental' ? 'FUNDAMENTAL' : 'PRÉ-VESTIBULAR'}
         </span>
       </div>
 
-      <nav className="flex flex-col gap-4 flex-1">
-        <NavItem icon={<LayoutDashboard size={22}/>} label="Início" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<Bot size={22}/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi'} onClick={() => {setAbaAtiva('vivi'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<PlayCircle size={22}/>} label="Aulas" color="#70E0BB" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<FileText size={22}/>} label="Temas" color="#FFDE03" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<UserCircle size={22}/>} label="Perfil" color="#FFA07A" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+      <nav className="flex flex-col gap-3 md:gap-4 flex-1 shrink-0">
+        <NavItem icon={<LayoutDashboard size={20}/>} label="Início" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Bot size={20}/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi'} onClick={() => {setAbaAtiva('vivi'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<PlayCircle size={20}/>} label="Aulas" color="#70E0BB" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<FileText size={20}/>} label="Temas" color="#FFDE03" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<UserCircle size={20}/>} label="Perfil" color="#FFA07A" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<LifeBuoy size={20}/>} label="Suporte" color="#3B82F6" active={false} onClick={() => window.location.href = '/suporte'} />
       </nav>
 
-      <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl hover:bg-[#FF0080]/10 mt-4"><LogOut size={22} /> <span>Sair</span></button>
+      {/* mt-auto garante que o botão fique no final, mas visível por causa do overflow-y-auto no container pai */}
+      <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center justify-center lg:justify-start gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl hover:bg-[#FF0080]/10 mt-auto pt-6 shrink-0">
+        <LogOut size={20} /> <span className="text-sm md:text-base">Sair</span>
+      </button>
     </>
   )
 
@@ -242,117 +246,120 @@ export default function Dashboard() {
       
       <button 
         onClick={() => setMenuAberto(true)}
-        className="lg:hidden fixed top-6 left-6 z-40 p-3 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
+        className="lg:hidden fixed top-4 left-4 z-40 p-2 md:p-3 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all"
       >
-        <Menu size={28} strokeWidth={3} />
+        <Menu size={24} strokeWidth={3} className="md:w-7 md:h-7" />
       </button>
 
-      <aside className="w-72 border-r-4 border-[#1A1A1A] bg-[#FFF] p-8 flex flex-col hidden lg:flex relative z-10">
+      {/* Sidebar Desktop - Adicionado overflow-y-auto */}
+      <aside className="w-72 border-r-4 border-[#1A1A1A] bg-[#FFF] p-6 lg:p-8 flex-col hidden lg:flex relative z-10 overflow-y-auto">
         <SidebarConteudo />
       </aside>
 
+      {/* Sidebar Mobile - Adicionado overflow-y-auto e largura responsiva */}
       {menuAberto && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-[#1A1A1A]/40 backdrop-blur-sm" onClick={() => setMenuAberto(false)}></div>
-          <aside className="absolute top-0 left-0 h-full w-72 bg-white border-r-4 border-[#1A1A1A] p-8 flex flex-col animate-in slide-in-from-left duration-300">
+          <aside className="absolute top-0 left-0 h-full w-[85%] max-w-[320px] bg-white border-r-4 border-[#1A1A1A] p-5 flex flex-col overflow-y-auto animate-in slide-in-from-left duration-300">
             <SidebarConteudo />
           </aside>
         </div>
       )}
 
-      <main className={`flex-1 p-8 lg:p-12 overflow-y-auto relative pb-32 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
-        <div className="absolute top-10 right-10 opacity-10 pointer-events-none"><Sparkles size={120} className="text-[#FF0080] animate-pulse" /></div>
+      {/* Main Content - Paddings ajustados para mobile */}
+      <main className={`flex-1 p-4 sm:p-8 lg:p-12 overflow-y-auto relative pb-24 lg:pb-32 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
+        <div className="absolute top-10 right-4 lg:right-10 opacity-10 pointer-events-none hidden sm:block"><Sparkles size={80} className="text-[#FF0080] animate-pulse lg:w-[120px] lg:h-[120px]" /></div>
         
         <div className="h-16 lg:hidden"></div>
 
         {abaAtiva === 'home' && !redacaoSelecionada && (
           <div className="max-w-6xl mx-auto">
-            <header className="mb-8 relative">
-               <div className="absolute -top-6 -left-4 w-24 h-8 bg-[#FFDE03]/40 -rotate-3 rounded-sm"></div>
-               <h1 className="text-4xl md:text-6xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Olá, <span className="text-[#FF0080]">{nome.split(' ')[0]}</span>!</h1>
-               <p className="text-lg md:text-xl font-bold text-[#555] mt-2 flex items-center gap-2 italic"><Star size={20} className="text-[#FFDE03] fill-[#FFDE03]" /> Pronto para o próximo nível?</p>
+            <header className="mb-6 md:mb-8 relative">
+               <div className="absolute -top-4 -left-2 md:-top-6 md:-left-4 w-16 md:w-24 h-6 md:h-8 bg-[#FFDE03]/40 -rotate-3 rounded-sm"></div>
+               <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Olá, <span className="text-[#FF0080]">{nome.split(' ')[0]}</span>!</h1>
+               <p className="text-base md:text-xl font-bold text-[#555] mt-1 md:mt-2 flex items-center gap-2 italic"><Star size={16} className="text-[#FFDE03] fill-[#FFDE03] md:w-5 md:h-5" /> Pronto para o próximo nível?</p>
             </header>
 
-            <div className="mb-8 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
-              <div className="flex items-center gap-3">
+            <div className="mb-8 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl flex flex-col sm:flex-row items-center sm:items-center justify-between gap-4 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transform rotate-1 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <div className={`p-3 rounded-xl border-2 border-[#1A1A1A] ${creditosRestantes > 0 ? 'bg-[#70E0BB]' : 'bg-red-400'}`}>
                    <AlertCircle size={24} className={creditosRestantes === 0 ? 'text-white' : 'text-[#1A1A1A]'} />
                 </div>
                 <div>
-                  <h4 className="font-black uppercase italic leading-tight text-[#1A1A1A]">Seus Créditos do Mês</h4>
-                  <p className="text-sm font-bold opacity-70">Renova automaticamente todo dia 1º.</p>
+                  <h4 className="font-black uppercase italic leading-tight text-[#1A1A1A] text-sm md:text-base">Seus Créditos do Mês</h4>
+                  <p className="text-xs md:text-sm font-bold opacity-70">Renova automaticamente dia 1º.</p>
                 </div>
               </div>
-              <div className="text-3xl font-black bg-[#F9F6F0] px-4 py-2 border-2 border-[#1A1A1A] rounded-xl shadow-inner">
-                {creditosRestantes} <span className="text-sm uppercase opacity-50">/ 6</span>
+              <div className="text-2xl md:text-3xl font-black bg-[#F9F6F0] px-4 py-2 border-2 border-[#1A1A1A] rounded-xl shadow-inner w-full sm:w-auto text-center">
+                {creditosRestantes} <span className="text-xs md:text-sm uppercase opacity-50">/ 6</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-              <div className="relative group p-8 rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => window.location.href = '/enviar-redacao'}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-10 md:mb-12">
+              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => window.location.href = '/enviar-redacao'}>
                 <div className="relative z-10 text-white">
-                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Enviar<br/>Redação</h3>
-                  <p className="font-bold opacity-90 mb-6 text-sm">Seu texto corrigido por quem entende!</p>
-                  <button className="flex items-center justify-between w-full px-6 py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">COMEÇAR <ArrowRight size={20} strokeWidth={3} /></button>
+                  <h3 className="text-xl md:text-2xl font-black uppercase mb-1 md:mb-2 leading-tight">Enviar<br/>Redação</h3>
+                  <p className="font-bold opacity-90 mb-4 md:mb-6 text-xs md:text-sm">Seu texto corrigido por quem entende!</p>
+                  <button className="flex items-center justify-between w-full px-4 md:px-6 py-2 md:py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-sm">COMEÇAR <ArrowRight size={16} strokeWidth={3} className="md:w-5 md:h-5" /></button>
                 </div>
-                <Paperclip size={140} className="absolute -right-5 -bottom-5 text-white/20 transform rotate-12 group-hover:scale-110 transition-transform" />
+                <Paperclip size={100} className="absolute -right-4 -bottom-4 text-white/20 transform rotate-12 group-hover:scale-110 transition-transform md:w-[140px] md:h-[140px]" />
               </div>
 
-              <div className="relative group p-8 rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
+              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
                 <div className="relative z-10 text-[#1A1A1A]">
-                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Continuar<br/>Aulas</h3>
-                  <p className="font-bold opacity-80 mb-6 text-sm">Retome de onde você parou.</p>
-                  <button className="flex items-center justify-between w-full px-6 py-3 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">ASSISTIR <PlayCircle size={20} strokeWidth={3} /></button>
+                  <h3 className="text-xl md:text-2xl font-black uppercase mb-1 md:mb-2 leading-tight">Continuar<br/>Aulas</h3>
+                  <p className="font-bold opacity-80 mb-4 md:mb-6 text-xs md:text-sm">Retome de onde você parou.</p>
+                  <button className="flex items-center justify-between w-full px-4 md:px-6 py-2 md:py-3 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-sm">ASSISTIR <PlayCircle size={16} strokeWidth={3} className="md:w-5 md:h-5" /></button>
                 </div>
-                <PlayCircle size={140} className="absolute -right-5 -bottom-5 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform" />
+                <PlayCircle size={100} className="absolute -right-4 -bottom-4 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[140px] md:h-[140px]" />
               </div>
 
-              <div className="relative group p-8 rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
+              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
                 <div className="relative z-10 text-white">
-                  <h3 className="text-2xl font-black uppercase mb-2 leading-tight">Falar com<br/>a Vivi</h3>
-                  <p className="font-bold opacity-90 mb-6 text-sm">Dicas e ideias com a IA da plataforma!</p>
-                  <button className="flex items-center justify-between w-full px-6 py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-sm">BATER PAPO <MessageCircle size={20} strokeWidth={3} /></button>
+                  <h3 className="text-xl md:text-2xl font-black uppercase mb-1 md:mb-2 leading-tight">Falar com<br/>a Vivi</h3>
+                  <p className="font-bold opacity-90 mb-4 md:mb-6 text-xs md:text-sm">Dicas e ideias com a IA!</p>
+                  <button className="flex items-center justify-between w-full px-4 md:px-6 py-2 md:py-3 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-sm">BATER PAPO <MessageCircle size={16} strokeWidth={3} className="md:w-5 md:h-5" /></button>
                 </div>
-                <Bot size={140} className="absolute -right-5 -bottom-5 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform" />
+                <Bot size={100} className="absolute -right-4 -bottom-4 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[140px] md:h-[140px]" />
               </div>
             </div>
 
             {/* SEÇÃO: ALUNO DESTAQUE DO MÊS */}
             {alunoDestaque && (
-              <div className="mb-12 bg-white border-4 border-[#1A1A1A] rounded-[40px] p-8 shadow-[10px_10px_0px_0px_rgba(26,26,26,1)] relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 transform translate-x-4 -translate-y-4">
-                  <Trophy size={120} className="text-[#FFDE03] opacity-20 group-hover:rotate-12 transition-transform" />
+              <div className="mb-10 md:mb-12 bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[10px_10px_0px_0px_rgba(26,26,26,1)] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 md:p-4 transform translate-x-2 -translate-y-2 md:translate-x-4 md:-translate-y-4">
+                  <Trophy size={80} className="text-[#FFDE03] opacity-20 group-hover:rotate-12 transition-transform md:w-[120px] md:h-[120px]" />
                 </div>
-                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-                  <div className="relative">
-                    <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                      {alunoDestaque.foto_url ? <img src={alunoDestaque.foto_url} className="w-full h-full object-cover" alt="Avatar" /> : <UserCircle size={100} className="m-auto text-[#1A1A1A]" />}
+                <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8 relative z-10">
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      {alunoDestaque.foto_url ? <img src={alunoDestaque.foto_url} className="w-full h-full object-cover" alt="Avatar" /> : <UserCircle size={80} className="m-auto text-[#1A1A1A] md:w-[100px] md:h-[100px]" />}
                     </div>
-                    <div className="absolute -bottom-2 -right-2 bg-white border-2 border-[#1A1A1A] p-2 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      <Star size={20} className="fill-[#FFDE03] text-[#1A1A1A]" />
+                    <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-white border-2 border-[#1A1A1A] p-1 md:p-2 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Star size={16} className="fill-[#FFDE03] text-[#1A1A1A] md:w-5 md:h-5" />
                     </div>
                   </div>
                   <div className="text-center md:text-left">
-                    <h3 className="text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-1">Destaque do Mês 🏆</h3>
-                    <p className="text-xl md:text-2xl font-bold text-[#555] italic leading-tight">
+                    <h3 className="text-xl md:text-3xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-1">Destaque do Mês 🏆</h3>
+                    <p className="text-base md:text-2xl font-bold text-[#555] italic leading-tight">
                       Parabéns, <span className="text-[#FF0080] underline decoration-4 decoration-[#70E0BB]">{alunoDestaque.nome_completo}</span>!<br/>
-                      Sua dedicação está servindo de inspiração para todos!
+                      Sua dedicação é inspiração!
                     </p>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] p-6 md:p-10 shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
-              <h3 className="text-2xl md:text-3xl font-black uppercase text-[#1A1A1A] mb-8 border-b-4 border-dashed border-[#1A1A1A] pb-4 flex items-center gap-2"><StickyNote className="text-[#FF0080]" size={28} strokeWidth={3} /> Seu Histórico</h3>
-              <div className="grid gap-6">
+            <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-10 shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+              <h3 className="text-xl md:text-3xl font-black uppercase text-[#1A1A1A] mb-6 md:mb-8 border-b-4 border-dashed border-[#1A1A1A] pb-3 md:pb-4 flex items-center gap-2"><StickyNote className="text-[#FF0080] w-6 h-6 md:w-7 md:h-7" strokeWidth={3} /> Seu Histórico</h3>
+              <div className="grid gap-4 md:gap-6">
                 {minhasRedacoes.map(r => (
-                  <div key={r.id} onClick={() => setRedacaoSelecionada(r)} className="flex items-center justify-between p-4 md:p-6 rounded-3xl bg-[#F9F6F0] border-2 border-[#1A1A1A] hover:rotate-1 hover:bg-[#FFDE03]/20 transition-all cursor-pointer">
-                    <div className="flex items-center gap-4 md:gap-6">
-                      <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl border-2 border-[#1A1A1A] flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(26,26,26,1)] ${r.status === 'corrigido' ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`}>{r.status === 'corrigido' ? <CheckCircle2 size={24} /> : <Clock size={24} />}</div>
-                      <p className="text-lg md:text-xl font-black uppercase tracking-tight line-clamp-1">{r.titulo || 'Sem título'}</p>
+                  <div key={r.id} onClick={() => setRedacaoSelecionada(r)} className="flex items-center justify-between p-3 md:p-6 rounded-2xl md:rounded-3xl bg-[#F9F6F0] border-2 border-[#1A1A1A] hover:rotate-1 hover:bg-[#FFDE03]/20 transition-all cursor-pointer">
+                    <div className="flex items-center gap-3 md:gap-6 w-full pr-2">
+                      <div className={`shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl border-2 border-[#1A1A1A] flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[3px_3px_0px_0px_rgba(26,26,26,1)] ${r.status === 'corrigido' ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`}>{r.status === 'corrigido' ? <CheckCircle2 size={20} className="md:w-6 md:h-6" /> : <Clock size={20} className="md:w-6 md:h-6" />}</div>
+                      <p className="text-sm sm:text-base md:text-xl font-black uppercase tracking-tight line-clamp-1 break-all">{r.titulo || 'Sem título'}</p>
                     </div>
-                    <ChevronRight size={28} strokeWidth={3} />
+                    <ChevronRight size={20} strokeWidth={3} className="shrink-0 md:w-7 md:h-7" />
                   </div>
                 ))}
               </div>
@@ -362,26 +369,26 @@ export default function Dashboard() {
 
         {abaAtiva === 'vivi' && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
-            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 border-b-8 border-[#A78BFA] inline-block text-[#1A1A1A]">Assistente Virtual</h2>
-            <div className="bg-white border-4 border-[#1A1A1A] rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] flex flex-col overflow-hidden h-[600px] max-h-[70vh]">
-              <div className="bg-[#A78BFA] border-b-4 border-[#1A1A1A] p-4 flex items-center gap-3">
-                <div className="w-12 h-12 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-8 border-b-8 border-[#A78BFA] inline-block text-[#1A1A1A]">Assistente Virtual</h2>
+            <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] flex flex-col overflow-hidden h-[500px] md:h-[600px] max-h-[75vh]">
+              <div className="bg-[#A78BFA] border-b-4 border-[#1A1A1A] p-3 md:p-4 flex items-center gap-3">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
                   <img src="/vivi.png" alt="Vivi" className="w-full h-full object-cover" />
                 </div>
-                <div><h4 className="font-black uppercase text-white leading-tight">Vivi</h4><p className="text-sm font-bold text-white/90 italic">Pronta para te ajudar com ideias e dicas!</p></div>
+                <div><h4 className="font-black uppercase text-white leading-tight text-sm md:text-base">Vivi</h4><p className="text-xs md:text-sm font-bold text-white/90 italic">Pronta para te ajudar com ideias e dicas!</p></div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto bg-[#F9F6F0] flex flex-col gap-6">
+              <div className="flex-1 p-4 md:p-6 overflow-y-auto bg-[#F9F6F0] flex flex-col gap-4 md:gap-6">
                 {historicoVivi.map((msg, index) => (
                   <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] p-4 rounded-3xl border-4 border-[#1A1A1A] text-base md:text-lg font-medium leading-relaxed shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${msg.role === 'user' ? 'bg-[#FFDE03] rounded-br-none' : 'bg-white rounded-bl-none'}`}>{formatarMensagem(msg.parts[0].text)}</div>
+                    <div className={`max-w-[90%] md:max-w-[85%] p-3 md:p-4 rounded-2xl md:rounded-3xl border-2 md:border-4 border-[#1A1A1A] text-sm md:text-lg font-medium leading-relaxed shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${msg.role === 'user' ? 'bg-[#FFDE03] rounded-br-none' : 'bg-white rounded-bl-none'}`}>{formatarMensagem(msg.parts[0].text)}</div>
                   </div>
                 ))}
-                {carregandoVivi && (<div className="flex justify-start"><div className="bg-white border-4 border-[#1A1A1A] p-4 rounded-3xl rounded-bl-none text-base font-bold animate-pulse text-[#A78BFA] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">Vivi está digitando...</div></div>)}
+                {carregandoVivi && (<div className="flex justify-start"><div className="bg-white border-2 md:border-4 border-[#1A1A1A] p-3 md:p-4 rounded-2xl md:rounded-3xl rounded-bl-none text-sm md:text-base font-bold animate-pulse text-[#A78BFA] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">Vivi está digitando...</div></div>)}
                 <div ref={chatFimRef} />
               </div>
-              <form onSubmit={enviarMensagemVivi} className="border-t-4 border-[#1A1A1A] bg-white p-4 sm:p-6 flex gap-4">
-                <input type="text" value={mensagemVivi} onChange={(e) => setMensagemVivi(e.target.value)} placeholder="Pergunte algo para a Vivi..." className="flex-1 bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl px-6 py-4 text-lg font-bold outline-none focus:bg-[#A78BFA]/10 transition-colors" disabled={carregandoVivi} />
-                <button type="submit" disabled={carregandoVivi || !mensagemVivi.trim()} className="bg-[#FF0080] border-4 border-[#1A1A1A] px-6 sm:px-8 py-4 rounded-2xl text-white hover:bg-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center"><Send size={28} strokeWidth={3} /></button>
+              <form onSubmit={enviarMensagemVivi} className="border-t-4 border-[#1A1A1A] bg-white p-3 md:p-6 flex gap-2 md:gap-4">
+                <input type="text" value={mensagemVivi} onChange={(e) => setMensagemVivi(e.target.value)} placeholder="Pergunte algo para a Vivi..." className="flex-1 bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl px-4 py-3 md:px-6 md:py-4 text-sm md:text-lg font-bold outline-none focus:bg-[#A78BFA]/10 transition-colors" disabled={carregandoVivi} />
+                <button type="submit" disabled={carregandoVivi || !mensagemVivi.trim()} className="bg-[#FF0080] border-2 md:border-4 border-[#1A1A1A] px-4 py-3 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-white hover:bg-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center shrink-0"><Send size={20} strokeWidth={3} className="md:w-7 md:h-7" /></button>
               </form>
             </div>
           </div>
@@ -389,31 +396,31 @@ export default function Dashboard() {
 
         {abaAtiva === 'perfil' && (
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-4xl font-black uppercase italic text-[#1A1A1A] mb-8">Dados do Aluno</h2>
-            <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] space-y-8 relative overflow-hidden">
-               <div className="flex flex-col items-center pb-8 border-b-4 border-dashed border-[#1A1A1A]">
+            <h2 className="text-3xl md:text-4xl font-black uppercase italic text-[#1A1A1A] mb-6 md:mb-8">Dados do Aluno</h2>
+            <div className="bg-white border-4 border-[#1A1A1A] p-5 md:p-10 rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] space-y-6 md:space-y-8 relative overflow-hidden">
+               <div className="flex flex-col items-center pb-6 md:pb-8 border-b-4 border-dashed border-[#1A1A1A]">
                 <div className="relative group">
-                  <div className="w-32 h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] relative">
-                    {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={120} className="text-[#1A1A1A]" />}
+                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#1A1A1A] overflow-hidden bg-[#FFDE03] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] relative">
+                    {fotoPerfil ? <img src={fotoPerfil} className="w-full h-full object-cover rounded-full" /> : <UserCircle size={90} className="text-[#1A1A1A] md:w-[120px] md:h-[120px]" />}
                   </div>
-                  <label className="absolute -bottom-2 -right-2 bg-white border-2 border-[#1A1A1A] p-2 rounded-full cursor-pointer hover:bg-[#70E0BB] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
-                    <Camera size={20} /><input type="file" className="hidden" accept="image/*" onChange={handleUploadFoto} disabled={uploadingFoto} />
+                  <label className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-white border-2 border-[#1A1A1A] p-2 rounded-full cursor-pointer hover:bg-[#70E0BB] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                    <Camera size={16} className="md:w-5 md:h-5" /><input type="file" className="hidden" accept="image/*" onChange={handleUploadFoto} disabled={uploadingFoto} />
                   </label>
                 </div>
               </div>
-              <div className="space-y-6">
-                <div className="grid gap-2">
-                  <label className="text-xl font-black uppercase italic text-[#1A1A1A]">Nome Completo</label>
-                  <input className="w-full bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-4 text-xl font-bold outline-none" value={nome} onChange={e => setNome(e.target.value)} />
+              <div className="space-y-5 md:space-y-6">
+                <div className="grid gap-1 md:gap-2">
+                  <label className="text-lg md:text-xl font-black uppercase italic text-[#1A1A1A]">Nome Completo</label>
+                  <input className="w-full bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl p-3 md:p-4 text-base md:text-xl font-bold outline-none" value={nome} onChange={e => setNome(e.target.value)} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                  <div className="grid gap-2">
-                    <label className="text-xl font-black uppercase italic text-[#1A1A1A]">Nota ENEM</label>
-                    <input type="number" className="w-full bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-4 text-xl font-bold outline-none" value={ultimaNota} onChange={e => setUltimaNota(e.target.value)} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+                  <div className="grid gap-1 md:gap-2">
+                    <label className="text-lg md:text-xl font-black uppercase italic text-[#1A1A1A]">Nota ENEM</label>
+                    <input type="number" className="w-full bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl p-3 md:p-4 text-base md:text-xl font-bold outline-none" value={ultimaNota} onChange={e => setUltimaNota(e.target.value)} />
                   </div>
-                  <div className="grid gap-2">
-                    <label className="text-xl font-black uppercase italic text-[#1A1A1A]">Série</label>
-                    <select className="w-full bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-2xl p-4 text-xl font-bold outline-none" value={escolaridade} onChange={e => setEscolaridade(e.target.value)}>
+                  <div className="grid gap-1 md:gap-2">
+                    <label className="text-lg md:text-xl font-black uppercase italic text-[#1A1A1A]">Série</label>
+                    <select className="w-full bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl p-3 md:p-4 text-base md:text-xl font-bold outline-none" value={escolaridade} onChange={e => setEscolaridade(e.target.value)}>
                       <option value="">Selecione...</option>
                       <option value="1º Ano do Ensino Médio">1º Ano</option>
                       <option value="2º Ano do Ensino Médio">2º Ano</option>
@@ -422,7 +429,7 @@ export default function Dashboard() {
                     </select>
                   </div>
                 </div>
-                <button onClick={handleSalvarPerfil} className="w-full py-6 bg-[#FF0080] text-white rounded-full font-black text-xl md:text-2xl uppercase italic border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 transition-all">Confirmar Alterações</button>
+                <button onClick={handleSalvarPerfil} className="w-full py-4 md:py-6 bg-[#FF0080] text-white rounded-full font-black text-lg md:text-2xl uppercase italic border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 transition-all mt-4">Confirmar Alterações</button>
               </div>
             </div>
           </div>
@@ -430,14 +437,14 @@ export default function Dashboard() {
 
         {abaAtiva === 'aulas' && (
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-12 border-b-8 border-[#FFDE03] inline-block">Estudos</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FFDE03] inline-block">Estudos</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
               {aulas.map((aula, idx) => (
-                <div key={aula.id} className={`group border-4 border-[#1A1A1A] rounded-[40px] overflow-hidden hover:-translate-y-2 transition-all cursor-pointer shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] ${idx % 3 === 0 ? 'bg-[#FF0080]' : idx % 3 === 1 ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`} onClick={() => window.location.href = `/dashboard/aula/${aula.id}`}>
+                <div key={aula.id} className={`group border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] overflow-hidden hover:-translate-y-2 transition-all cursor-pointer shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] ${idx % 3 === 0 ? 'bg-[#FF0080]' : idx % 3 === 1 ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`} onClick={() => window.location.href = `/dashboard/aula/${aula.id}`}>
                   <div className="aspect-square relative border-b-4 border-[#1A1A1A] overflow-hidden bg-white">
-                    {aula.capa_final ? <img src={aula.capa_final} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen size={80} className="text-[#1A1A1A] opacity-20"/></div>}
+                    {aula.capa_final ? <img src={aula.capa_final} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen size={60} className="text-[#1A1A1A] opacity-20 md:w-[80px] md:h-[80px]"/></div>}
                   </div>
-                  <div className="p-6"><h4 className="text-xl md:text-2xl font-black text-white uppercase leading-tight line-clamp-2">{aula.titulo}</h4></div>
+                  <div className="p-4 md:p-6"><h4 className="text-lg md:text-2xl font-black text-white uppercase leading-tight line-clamp-2">{aula.titulo}</h4></div>
                 </div>
               ))}
             </div>
@@ -446,20 +453,20 @@ export default function Dashboard() {
 
         {abaAtiva === 'temas' && (
           <div className="max-w-6xl mx-auto animate-in slide-in-from-left-8 duration-500">
-            <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter mb-12 border-b-8 border-[#FFDE03] inline-block">Propostas de Redação</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FFDE03] inline-block">Propostas de Redação</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
               {temas.map((tema) => (
-                <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-8 rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 transition-all flex flex-col justify-between">
+                <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-6 md:p-8 rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 transition-all flex flex-col justify-between">
                   <div>
-                    <h3 className="text-2xl font-black uppercase leading-tight mb-4 text-[#FF0080]">{tema.titulo}</h3>
-                    {tema.descricao && (<p className="text-base font-medium italic mb-6 text-[#333] border-l-4 border-[#FFDE03] pl-4">{tema.descricao}</p>)}
+                    <h3 className="text-xl md:text-2xl font-black uppercase leading-tight mb-3 md:mb-4 text-[#FF0080]">{tema.titulo}</h3>
+                    {tema.descricao && (<p className="text-sm md:text-base font-medium italic mb-5 md:mb-6 text-[#333] border-l-4 border-[#FFDE03] pl-3 md:pl-4">{tema.descricao}</p>)}
                   </div>
-                  <div className="mt-4 pt-6 border-t-4 border-dashed border-[#1A1A1A]/20">
+                  <div className="mt-4 pt-5 md:pt-6 border-t-4 border-dashed border-[#1A1A1A]/20">
                     {tema.arquivo_apoio_url ? (
-                      <a href={tema.arquivo_apoio_url} target="_blank" className="w-full flex items-center justify-center gap-3 py-4 bg-[#70E0BB] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-lg shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]">
-                        <FileText size={24} /> Ler Textos de Apoio
+                      <a href={tema.arquivo_apoio_url} target="_blank" className="w-full flex items-center justify-center gap-2 md:gap-3 py-3 md:py-4 bg-[#70E0BB] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl font-black uppercase text-sm md:text-lg shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]">
+                        <FileText size={20} className="md:w-6 md:h-6" /> Ler Textos de Apoio
                       </a>
-                    ) : (<span className="w-full flex items-center justify-center gap-2 py-4 bg-[#F9F6F0] border-4 border-[#1A1A1A]/30 rounded-2xl font-black uppercase text-sm text-[#1A1A1A]/50 cursor-not-allowed">Sem material de apoio</span>)}
+                    ) : (<span className="w-full flex items-center justify-center gap-2 py-3 md:py-4 bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A]/30 rounded-xl md:rounded-2xl font-black uppercase text-xs md:text-sm text-[#1A1A1A]/50 cursor-not-allowed">Sem material de apoio</span>)}
                   </div>
                 </div>
               ))}
@@ -469,28 +476,28 @@ export default function Dashboard() {
 
         {redacaoSelecionada && (
           <div className="max-w-5xl mx-auto animate-in zoom-in-95 duration-500">
-            <button onClick={() => setRedacaoSelecionada(null)} className="flex items-center gap-2 font-black text-lg md:text-xl text-[#1A1A1A] mb-8 hover:text-[#FF0080] transition-colors uppercase italic"><ArrowRight size={24} className="rotate-180" strokeWidth={3} /> Voltar</button>
-            <div className="flex flex-col lg:flex-row gap-8 md:gap-10">
-              <div className="flex-1 bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[40px] shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] transform -rotate-1 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-[#FFDE03] border-l-4 border-b-4 border-[#1A1A1A] -rotate-45 translate-x-10 -translate-y-10"></div>
-                <h1 className="text-3xl md:text-4xl font-black uppercase text-[#1A1A1A] mb-8 border-b-4 border-dashed border-[#1A1A1A]/20 pb-4 leading-tight">{redacaoSelecionada.titulo}</h1>
-                <p className="text-lg md:text-xl font-medium text-[#333] leading-relaxed whitespace-pre-wrap font-serif italic">{redacaoSelecionada.texto_redacao || "Documento em anexo."}</p>
+            <button onClick={() => setRedacaoSelecionada(null)} className="flex items-center gap-2 font-black text-base md:text-xl text-[#1A1A1A] mb-6 md:mb-8 hover:text-[#FF0080] transition-colors uppercase italic"><ArrowRight size={20} className="rotate-180 md:w-6 md:h-6" strokeWidth={3} /> Voltar</button>
+            <div className="flex flex-col lg:flex-row gap-6 md:gap-10">
+              <div className="flex-1 bg-white border-4 border-[#1A1A1A] p-5 md:p-10 rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] transform md:-rotate-1 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-[#FFDE03] border-l-4 border-b-4 border-[#1A1A1A] -rotate-45 translate-x-8 -translate-y-8 md:translate-x-10 md:-translate-y-10"></div>
+                <h1 className="text-2xl md:text-4xl font-black uppercase text-[#1A1A1A] mb-6 md:mb-8 border-b-4 border-dashed border-[#1A1A1A]/20 pb-3 md:pb-4 leading-tight">{redacaoSelecionada.titulo}</h1>
+                <p className="text-base md:text-xl font-medium text-[#333] leading-relaxed whitespace-pre-wrap font-serif italic">{redacaoSelecionada.texto_redacao || "Documento em anexo."}</p>
               </div>
-              <div className="lg:w-80 space-y-6 md:space-y-8 transform rotate-1">
-                <div className="p-6 md:p-8 rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] text-center">
-                  <span className="text-base md:text-lg font-black uppercase tracking-tighter text-[#1A1A1A]">Nota Final</span>
-                  <h2 className="text-6xl md:text-7xl font-black text-[#1A1A1A] my-4 leading-none">{redacaoSelecionada.correcoes?.[0]?.nota || '--'}</h2>
-                  <p className="text-[10px] md:text-xs font-bold opacity-60 uppercase italic">Corrigido por {redacaoSelecionada.correcoes?.[0]?.perfis?.nome_completo || 'Professor'}</p>
+              <div className="lg:w-80 space-y-6 md:space-y-8 transform md:rotate-1">
+                <div className="p-5 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] text-center">
+                  <span className="text-sm md:text-lg font-black uppercase tracking-tighter text-[#1A1A1A]">Nota Final</span>
+                  <h2 className="text-5xl md:text-7xl font-black text-[#1A1A1A] my-3 md:my-4 leading-none">{redacaoSelecionada.correcoes?.[0]?.nota || '--'}</h2>
+                  <p className="text-[9px] md:text-xs font-bold opacity-60 uppercase italic">Corrigido por {redacaoSelecionada.correcoes?.[0]?.perfis?.nome_completo || 'Professor'}</p>
                 </div>
-                <div className="p-6 md:p-8 rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
-                  <h3 className="text-lg md:text-xl font-black uppercase mb-4 flex items-center gap-2 border-b-2 border-[#1A1A1A] pb-2"><Sparkles size={20} /> FEEDBACK</h3>
+                <div className="p-5 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                  <h3 className="text-base md:text-xl font-black uppercase mb-3 md:mb-4 flex items-center gap-2 border-b-2 border-[#1A1A1A] pb-2"><Sparkles size={16} className="md:w-5 md:h-5" /> FEEDBACK</h3>
                   {redacaoSelecionada.correcoes?.[0]?.audio_url && (
-                    <div className="mb-6 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
-                      <h4 className="font-black uppercase italic text-sm mb-3 flex items-center gap-2 text-[#3B82F6]"><Headphones size={18} /> Ouça a correção:</h4>
-                      <audio src={redacaoSelecionada.correcoes[0].audio_url} controls className="w-full h-10 outline-none rounded-lg" />
+                    <div className="mb-4 md:mb-6 p-3 md:p-4 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+                      <h4 className="font-black uppercase italic text-xs md:text-sm mb-2 md:mb-3 flex items-center gap-2 text-[#3B82F6]"><Headphones size={16} /> Ouça a correção:</h4>
+                      <audio src={redacaoSelecionada.correcoes[0].audio_url} controls className="w-full h-8 md:h-10 outline-none rounded-lg" />
                     </div>
                   )}
-                  <p className="text-base md:text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "Aguardando correção..."}"</p>
+                  <p className="text-sm md:text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "Aguardando correção..."}"</p>
                 </div>
               </div>
             </div>
@@ -503,6 +510,6 @@ export default function Dashboard() {
 
 function NavItem({ icon, label, active, onClick, color }) {
   return (
-    <button onClick={onClick} className={`flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase italic text-xl border-4 transition-all ${active ? `bg-[${color}] text-[#1A1A1A] border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1` : 'text-[#555] border-transparent hover:border-[#1A1A1A] hover:bg-white'}`} style={active ? {backgroundColor: color} : {}}>{icon} <span>{label}</span></button>
+    <button onClick={onClick} className={`flex items-center gap-3 md:gap-4 px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl font-black uppercase italic text-base md:text-xl border-2 md:border-4 transition-all ${active ? `bg-[${color}] text-[#1A1A1A] border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1` : 'text-[#555] border-transparent hover:border-[#1A1A1A] hover:bg-white'}`} style={active ? {backgroundColor: color} : {}}>{icon} <span>{label}</span></button>
   )
 }

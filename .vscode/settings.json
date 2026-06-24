@@ -1,0 +1,20 @@
+{
+    "sqltools.connections": [
+        {
+            "pgOptions": {
+                "ssl": {
+                    "rejectUnauthorized": true
+                }
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "banco-pontoevirgula.cdagqukuepc0.us-east-2.rds.amazonaws.com",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "Banco AWS",
+            "database": "postgres",
+            "username": "postgres",
+            "password": "banco2026"
+        }
+    ]
+}

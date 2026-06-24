@@ -66,7 +66,15 @@ export default function EnviarRedacao() {
     let urlPublica = null
 
     if (arquivo) {
-      const nomeArquivo = `${user.id}/${Date.now()}-${arquivo.name}`
+      // SANITIZAÇÃO DE ENGENHARIA APLICADA AQUI
+      const nomeLimpo = arquivo.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/\s+/g, "-")            // Troca espaços por hifens
+        .replace(/[^a-zA-Z0-9.\-]/g, "") // Remove qualquer outro símbolo estranho
+        .toLowerCase();
+
+      const nomeArquivo = `${user.id}/${Date.now()}-${nomeLimpo}`
       const { data: uploadData, error: uploadError } = await supabase.storage.from('redacoes_arquivos').upload(nomeArquivo, arquivo)
       if (uploadError) { alert('Erro: ' + uploadError.message); setEnviando(false); return }
       urlPublica = supabase.storage.from('redacoes_arquivos').getPublicUrl(nomeArquivo).data.publicUrl
