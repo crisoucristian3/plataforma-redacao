@@ -4,7 +4,7 @@ import {
   PlusCircle, BookOpen, GraduationCap, CheckCircle2, 
   Clock, ArrowRight, UserCircle, LogOut, Camera, Search, Pencil, 
   LayoutDashboard, Users, PlayCircle, Star, FileText, ArrowLeft,
-  PenTool, Trash2, Phone, School, Rocket, CalendarDays, LifeBuoy, Paperclip, HelpCircle
+  PenTool, Trash2, Phone, School, Rocket, CalendarDays, LifeBuoy, Paperclip, HelpCircle, Map
 } from 'lucide-react'
 
 export default function PainelProfessor() {
@@ -17,12 +17,16 @@ export default function PainelProfessor() {
   const [desafios, setDesafios] = useState([])
   const [atividades, setAtividades] = useState([]) 
   const [questoes, setQuestoes] = useState([])
+  const [trilhas, setTrilhas] = useState([]) 
   const [loading, setLoading] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState('home') 
   const [nome, setNome] = useState('')
   const [fotoPerfil, setFotoPerfil] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   const [detalheHistorico, setDetalheHistorico] = useState(null)
+  
+  const [desempenhoTrilha, setDesempenhoTrilha] = useState(null)
+  const [alunosProgresso, setAlunosProgresso] = useState([])
   
   const [filtroAlunoAtual, setFiltroAlunoAtual] = useState('Todos')
   const [filtroCaderno, setFiltroCaderno] = useState('Todos')
@@ -80,9 +84,49 @@ export default function PainelProfessor() {
       const { data: listaQuestoes } = await supabase.from('questoes_enem').select('*').order('created_at', { ascending: false })
       setQuestoes(listaQuestoes || [])
 
+      const { data: listaTrilhas } = await supabase.from('trilhas_gamificadas').select('*').order('created_at', { ascending: true })
+      setTrilhas(listaTrilhas || [])
+
     } else { window.location.href = '/login' }
     setLoading(false)
   }
+
+  // =========================================================
+  // FUNÇÃO CORRIGIDA: BUSCA EM DUAS ETAPAS PARA EVITAR ERRO DE JOIN
+  // =========================================================
+  async function abrirDesempenho(trilha) {
+    setDesempenhoTrilha(trilha);
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    
+    // 1. Busca primeiro só os progressos
+    const { data: progressos } = await supabase
+      .from('progresso_trilhas')
+      .select('*')
+      .eq('trilha_id', trilha.id)
+      .order('pontos_acumulados', { ascending: false });
+      
+    if (progressos && progressos.length > 0) {
+      // 2. Extrai os IDs dos alunos
+      const alunoIds = progressos.map(p => p.aluno_id);
+      
+      // 3. Busca os perfis (nome e foto) desses alunos
+      const { data: perfisData } = await supabase
+        .from('perfis')
+        .select('id, nome_completo, foto_url')
+        .in('id', alunoIds);
+        
+      // 4. Junta tudo em um único objeto para a tela renderizar
+      const progressosComPerfil = progressos.map(prog => ({
+        ...prog,
+        perfis: perfisData?.find(perfil => perfil.id === prog.aluno_id) || { nome_completo: 'Aluno', foto_url: null }
+      }));
+      
+      setAlunosProgresso(progressosComPerfil);
+    } else {
+      setAlunosProgresso([]);
+    }
+  }
+  // =========================================================
 
   const normalizarNome = (txt) => txt?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || "";
   
@@ -142,6 +186,13 @@ export default function PainelProfessor() {
     setQuestoes(questoes.filter(q => q.id !== id));
   }
 
+  async function excluirTrilha(id) {
+    if(!confirm("Excluir esta trilha inteira? Todos os progressos serão perdidos.")) return;
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    await supabase.from('trilhas_gamificadas').delete().eq('id', id);
+    setTrilhas(trilhas.filter(t => t.id !== id));
+  }
+
   async function handleUploadFoto(e) {
     const file = e.target.files[0]; if (!file) return;
     setUploadingFoto(true);
@@ -190,7 +241,6 @@ export default function PainelProfessor() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               
-              {/* CARTÃO: REDAÇÕES */}
               <div onClick={() => setAbaAtiva('correcoes')} className="sm:col-span-2 lg:col-span-2 bg-[#FF0080] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 cursor-pointer relative overflow-hidden group">
                 <PenTool size={100} className="absolute -right-4 -bottom-4 text-white/20 transform rotate-12 md:w-[150px] md:h-[150px] md:-right-10 md:-bottom-10" />
                 <div className="relative z-10 text-white">
@@ -200,13 +250,19 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
-              {/* CARTÃO: ALUNOS */}
               <div onClick={() => setAbaAtiva('alunos')} className="bg-[#70E0BB] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 cursor-pointer flex flex-col justify-between">
                 <div><Users size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Alunos</h3><p className="font-bold text-sm md:text-base opacity-80 leading-tight">Gestão da turma.</p></div>
                 <div className="mt-4 md:mt-6 font-black text-3xl md:text-4xl">{alunos.length} <span className="text-xs md:text-sm uppercase opacity-60 tracking-widest">Ativos</span></div>
               </div>
 
-              {/* CARTÃO: TEMAS */}
+              <div className="bg-[#F59E0B] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
+                <div><Map size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Trilhas Kids</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Missões e Mini-games.</p></div>
+                <div className="flex flex-col gap-2 mt-4">
+                  <button onClick={() => setAbaAtiva('ver-trilhas')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({trilhas.length})</button>
+                  <button onClick={() => window.location.href = '/enviar-trilha'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors hover:bg-white hover:text-[#1A1A1A]"><PlusCircle size={14}/> Montar Trilha</button>
+                </div>
+              </div>
+
               <div className="bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between">
                 <div><FileText size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Temas</h3><p className="font-bold text-sm md:text-base opacity-80">Propostas ENEM.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
@@ -215,7 +271,6 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
-              {/* CARTÃO: AULAS */}
               <div className="bg-[#A78BFA] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between">
                 <div className="text-white"><PlayCircle size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Aulas</h3><p className="font-bold text-sm md:text-base opacity-80">Vídeos e materiais.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
@@ -224,16 +279,6 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
-              {/* CARTÃO: QUESTÕES ENEM NOVO! */}
-              <div className="bg-sky-400 border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
-                <div><HelpCircle size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Banco ENEM</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Simulados Ensino Médio.</p></div>
-                <div className="flex flex-col gap-2 mt-4">
-                  <button onClick={() => setAbaAtiva('ver-questoes')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({questoes.length})</button>
-                  <button onClick={() => window.location.href = '/enviar-questao'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors"><PlusCircle size={14}/> Nova Questão</button>
-                </div>
-              </div>
-
-              {/* CARTÃO: DESAFIOS KIDS */}
               <div className="bg-[#FFA07A] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
                 <div><Rocket size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Desafios</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A]">Kids Fundamental.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
@@ -242,22 +287,27 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
-              {/* CARTÃO: ATIVIDADE EXTRA */}
-              <div className="bg-emerald-400 border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
+              <div className="bg-[#4ADE80] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between cursor-pointer group" onClick={() => window.location.href = '/enviar-atividade'}>
                 <div>
                   <Paperclip size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" />
                   <h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Atividades</h3>
                   <p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Extras em PDF.</p>
                 </div>
-                <div className="flex flex-col gap-2 mt-4">
-                  <button onClick={() => setAbaAtiva('ver-atividades')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs text-[#1A1A1A]">Catálogo ({atividades.length})</button>
-                  <button onClick={() => window.location.href = '/enviar-atividade'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
-                    <PlusCircle size={14} className="md:w-4 md:h-4" /> Lançar PDF
+                <div className="mt-4 md:mt-6">
+                  <button className="w-full py-2 md:py-3 bg-white text-[#1A1A1A] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+                    <PlusCircle size={14} className="md:w-4 md:h-4" /> Lançar Atividade
                   </button>
                 </div>
               </div>
 
-              {/* CARTÃO: CHAMADOS DE SUPORTE */}
+              <div className="bg-sky-400 border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
+                <div><HelpCircle size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Banco ENEM</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Simulados Ensino Médio.</p></div>
+                <div className="flex flex-col gap-2 mt-4">
+                  <button onClick={() => setAbaAtiva('ver-questoes')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({questoes.length})</button>
+                  <button onClick={() => window.location.href = '/enviar-questao'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors"><PlusCircle size={14}/> Nova Questão</button>
+                </div>
+              </div>
+
               <div className="bg-[#3B82F6] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 cursor-pointer flex flex-col justify-between" onClick={() => window.location.href = '/chamados-professor'}>
                 <div className="text-white"><LifeBuoy size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Suporte</h3><p className="font-bold text-sm md:text-base opacity-80 leading-tight">Chamados dos alunos.</p></div>
                 <div className="mt-4 md:mt-6">
@@ -267,6 +317,82 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'ver-trilhas' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#F59E0B] inline-block">Trilhas Gamificadas</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {trilhas.length === 0 ? (
+                <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-4 text-slate-300" />
+                  <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhuma trilha criada ainda.</p>
+                </div>
+              ) : (
+                trilhas.map((trilha, idx) => (
+                  <div key={trilha.id} className="relative bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] overflow-hidden flex flex-col">
+                    
+                    <div className="absolute top-3 right-3 z-10 flex gap-2">
+                      <button onClick={() => window.location.href = `/editar-trilha/${trilha.id}`} title="Editar Trilha" className="p-2 bg-white border-2 border-[#1A1A1A] rounded-xl text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Pencil size={16} strokeWidth={3} />
+                      </button>
+                      <button onClick={() => excluirTrilha(trilha.id)} title="Excluir Trilha" className="p-2 bg-white border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Trash2 size={16} strokeWidth={3} />
+                      </button>
+                    </div>
+
+                    <div className="h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
+                      {trilha.capa_url ? (
+                        <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                      )}
+                      <span className="absolute bottom-2 left-2 bg-[#1A1A1A] text-white px-2 py-1 rounded-md text-[10px] font-black uppercase">TRILHA {idx + 1}</span>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-black uppercase leading-tight mb-2 text-[#1A1A1A]">{trilha.titulo}</h3>
+                        <p className="text-xs font-bold text-[#555] line-clamp-2 mb-4">{trilha.tema}</p>
+                      </div>
+                      
+                      <button onClick={() => abrirDesempenho(trilha)} className="w-full py-3 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-[#F59E0B] hover:text-white transition-colors">
+                        <Users size={16} /> Ver Desempenho
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {abaAtiva === 'alunos' && (
+          <div className="max-w-6xl mx-auto animate-in zoom-in-95 duration-500">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-10 border-b-4 md:border-b-8 border-[#70E0BB] inline-block">Filtro de Alunos</h2>
+            <div className="flex flex-wrap gap-2 mb-8 md:mb-10 bg-white border-2 md:border-4 border-[#1A1A1A] p-2 rounded-xl md:rounded-2xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
+              {abasDeFiltro.map(aba => (
+                <button key={aba} onClick={() => setFiltroAlunoAtual(aba)} className={`px-3 py-2 md:px-4 md:py-2 font-black uppercase italic text-[10px] md:text-xs rounded-lg md:rounded-xl transition-all border-2 ${filtroAlunoAtual === aba ? 'bg-[#FF0080] text-white border-[#1A1A1A]' : 'bg-transparent text-[#555] border-transparent hover:bg-[#F9F6F0]'}`}>{aba}</button>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:gap-6">
+              {alunosFiltrados.map(aluno => (
+                <div key={aluno.id} className="bg-white border-2 md:border-4 border-[#1A1A1A] p-4 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+                  <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto border-b-2 border-dashed border-[#1A1A1A]/20 md:border-0 pb-3 md:pb-0">
+                    <div className="w-12 h-12 md:w-20 md:h-20 rounded-full border-2 md:border-4 border-[#1A1A1A] overflow-hidden bg-[#F9F6F0] shrink-0">{aluno.foto_url ? <img src={aluno.foto_url} className="w-full h-full object-cover" /> : <UserCircle size={40} className="text-[#1A1A1A] md:w-[70px] md:h-[70px]" />}</div>
+                    <div><h4 className="text-base md:text-2xl font-black uppercase italic leading-tight">{aluno.nome_completo}</h4><div className="mt-1 md:mt-2 inline-flex items-center gap-1 md:gap-2 bg-[#70E0BB] border-2 border-[#1A1A1A] px-2 py-1 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-black uppercase text-white"><Star size={12} className="fill-white md:w-3.5 md:h-3.5" /> Nota: {aluno.ultima_nota_enem || '--'}</div></div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full md:ml-auto p-3 md:p-4 bg-[#F9F6F0] rounded-xl md:rounded-2xl border-2 border-[#1A1A1A] border-dashed">
+                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block text-[#1A1A1A]">Nível</span><span className="font-bold text-[10px] md:text-xs uppercase">{aluno.foco_ensino || 'enem'}</span></div>
+                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block">Escola</span><span className="font-bold text-[10px] md:text-xs truncate block" title={aluno.escola}>{aluno.escola || '-'}</span></div>
+                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block">Telefone</span><span className="font-bold text-[10px] md:text-xs">{aluno.telefone || '-'}</span></div>
+                    <div><span className="text-[9px] md:text-[10px] font-black uppercase text-[#FF0080] block">Cadastro</span><span className="font-bold text-[10px] md:text-xs flex items-center gap-1"><CalendarDays size={10} className="md:w-3 md:h-3"/> {new Date(aluno.created_at).toLocaleDateString('pt-BR')}</span></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -321,33 +447,6 @@ export default function PainelProfessor() {
           </div>
         )}
 
-        {abaAtiva === 'alunos' && (
-          <div className="max-w-6xl mx-auto animate-in zoom-in-95 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-10 border-b-4 md:border-b-8 border-[#70E0BB] inline-block">Filtro de Alunos</h2>
-            <div className="flex flex-wrap gap-2 mb-8 md:mb-10 bg-white border-2 md:border-4 border-[#1A1A1A] p-2 rounded-xl md:rounded-2xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">
-              {abasDeFiltro.map(aba => (
-                <button key={aba} onClick={() => setFiltroAlunoAtual(aba)} className={`px-3 py-2 md:px-4 md:py-2 font-black uppercase italic text-[10px] md:text-xs rounded-lg md:rounded-xl transition-all border-2 ${filtroAlunoAtual === aba ? 'bg-[#FF0080] text-white border-[#1A1A1A]' : 'bg-transparent text-[#555] border-transparent hover:bg-[#F9F6F0]'}`}>{aba}</button>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:gap-6">
-              {alunosFiltrados.map(aluno => (
-                <div key={aluno.id} className="bg-white border-2 md:border-4 border-[#1A1A1A] p-4 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-                  <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto border-b-2 border-dashed border-[#1A1A1A]/20 md:border-0 pb-3 md:pb-0">
-                    <div className="w-12 h-12 md:w-20 md:h-20 rounded-full border-2 md:border-4 border-[#1A1A1A] overflow-hidden bg-[#F9F6F0] shrink-0">{aluno.foto_url ? <img src={aluno.foto_url} className="w-full h-full object-cover" /> : <UserCircle size={40} className="text-[#1A1A1A] md:w-[70px] md:h-[70px]" />}</div>
-                    <div><h4 className="text-base md:text-2xl font-black uppercase italic leading-tight">{aluno.nome_completo}</h4><div className="mt-1 md:mt-2 inline-flex items-center gap-1 md:gap-2 bg-[#70E0BB] border-2 border-[#1A1A1A] px-2 py-1 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-black uppercase text-white"><Star size={12} className="fill-white md:w-3.5 md:h-3.5" /> Nota: {aluno.ultima_nota_enem || '--'}</div></div>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 w-full md:ml-auto p-3 md:p-4 bg-[#F9F6F0] rounded-xl md:rounded-2xl border-2 border-[#1A1A1A] border-dashed">
-                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block text-[#1A1A1A]">Nível</span><span className="font-bold text-[10px] md:text-xs uppercase">{aluno.foco_ensino || 'enem'}</span></div>
-                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block">Escola</span><span className="font-bold text-[10px] md:text-xs truncate block" title={aluno.escola}>{aluno.escola || '-'}</span></div>
-                    <div><span className="text-[9px] md:text-[10px] font-black uppercase opacity-50 block">Telefone</span><span className="font-bold text-[10px] md:text-xs">{aluno.telefone || '-'}</span></div>
-                    <div><span className="text-[9px] md:text-[10px] font-black uppercase text-[#FF0080] block">Cadastro</span><span className="font-bold text-[10px] md:text-xs flex items-center gap-1"><CalendarDays size={10} className="md:w-3 md:h-3"/> {new Date(aluno.created_at).toLocaleDateString('pt-BR')}</span></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {abaAtiva === 'ver-temas' && (
           <div className="max-w-6xl mx-auto animate-in slide-in-from-left-8 duration-500">
             <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FFDE03] inline-block">Temas Publicados</h2>
@@ -380,23 +479,6 @@ export default function PainelProfessor() {
           </div>
         )}
 
-        {abaAtiva === 'ver-atividades' && (
-          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-emerald-400 inline-block">Atividades Extras</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {atividades.map((act) => (
-                <div key={act.id} className="relative bg-white border-4 border-[#1A1A1A] p-5 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-1 transition-all flex flex-col justify-between">
-                  <button onClick={() => excluirAtividade(act.id)} className="absolute top-3 right-3 md:top-4 md:right-4 p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all"><Trash2 size={16} className="md:w-5 md:h-5" strokeWidth={3} /></button>
-                  <h3 className="text-lg md:text-xl font-black uppercase leading-tight mb-2 text-emerald-400 pr-10 md:pr-12">{act.titulo}</h3>
-                  <p className="text-xs md:text-sm font-medium italic line-clamp-3 mb-4 text-[#555]">{act.descricao}</p>
-                  {act.arquivo_url && (<a href={act.arquivo_url} target="_blank" className="inline-flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:py-3 bg-emerald-400 border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] md:text-xs shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all text-[#1A1A1A]"><FileText size={14} className="md:w-4 md:h-4" /> Ver Material</a>)}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* NOVA ABA: CATÁLOGO DE QUESTÕES ENEM */}
         {abaAtiva === 'ver-questoes' && (
           <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
             <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-10 border-b-4 md:border-b-8 border-sky-400 inline-block">Catálogo ENEM</h2>
@@ -465,6 +547,41 @@ export default function PainelProfessor() {
           </div>
         </div>
       )}
+
+      {/* NOVO MODAL: DESEMPENHO DA TRILHA */}
+      {desempenhoTrilha && (
+        <div className="fixed inset-0 bg-[#1A1A1A]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95">
+          <div className="bg-white border-4 border-[#1A1A1A] w-full max-w-2xl rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] p-5 md:p-10 relative flex flex-col max-h-[90vh]">
+            <button onClick={() => setDesempenhoTrilha(null)} className="absolute top-3 right-4 md:top-4 md:right-6 font-black text-xl md:text-2xl hover:text-[#FF0080]">✖</button>
+            <h2 className="text-xl md:text-3xl font-black uppercase italic border-b-4 border-[#F59E0B] inline-block mb-2 tracking-tight pr-8">{desempenhoTrilha.titulo}</h2>
+            <p className="font-bold text-[#555] mb-6">Ranking de Desempenho da Turma</p>
+            
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+              {alunosProgresso.length === 0 ? (
+                <div className="p-8 text-center border-4 border-dashed border-[#1A1A1A]/20 rounded-2xl">
+                  <p className="font-black text-[#1A1A1A]/50 uppercase">Nenhum aluno iniciou esta trilha ainda.</p>
+                </div>
+              ) : (
+                alunosProgresso.map((progresso, idx) => (
+                  <div key={progresso.id} className="flex items-center justify-between p-4 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-2xl">
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <span className="font-black text-xl text-[#F59E0B]">#{idx + 1}</span>
+                      <div className="w-10 h-10 rounded-full border-2 border-[#1A1A1A] overflow-hidden bg-white shrink-0">
+                        {progresso.perfis?.foto_url ? <img src={progresso.perfis.foto_url} className="w-full h-full object-cover" /> : <UserCircle className="w-full h-full text-[#1A1A1A]"/>}
+                      </div>
+                      <span className="font-black uppercase text-sm md:text-base line-clamp-1">{progresso.perfis?.nome_completo}</span>
+                    </div>
+                    <div className="bg-[#1A1A1A] text-[#F59E0B] px-3 py-1 rounded-lg font-black text-xs md:text-sm shrink-0 shadow-[2px_2px_0px_0px_#F59E0B]">
+                      {progresso.pontos_acumulados} / {desempenhoTrilha.total_pontos} PTS
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -3,8 +3,8 @@ import { useEffect, useState, useRef } from 'react'
 import { 
   LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
   CheckCircle2, Clock, BookOpen, ArrowRight, FileText, Sparkles, 
-  Pencil, Star, StickyNote, Paperclip, Menu, X, AlertCircle, 
-  Headphones, Rocket, Trophy, Gamepad2, School, Bot, MessageCircle, Send, ArrowLeft, LifeBuoy
+  Pencil, Star, StickyNote, Menu, X, AlertCircle, 
+  Headphones, Rocket, Trophy, Gamepad2, School, Bot, MessageCircle, Send, ArrowLeft, LifeBuoy, Map
 } from 'lucide-react'
 
 // ARRAY DE AVATARES DIVERTIDOS E INCLUSIVOS
@@ -28,9 +28,9 @@ export default function DashboardFundamental() {
   const [redacaoSelecionada, setRedacaoSelecionada] = useState(null)
   const [minhasRedacoes, setMinhasRedacoes] = useState([]) 
   
-  // --- LOGICA DOS DESAFIOS E ATIVIDADES ---
+  // --- LOGICA DOS DESAFIOS E TRILHAS ---
   const [desafios, setDesafios] = useState([])
-  const [atividades, setAtividades] = useState([])
+  const [trilhas, setTrilhas] = useState([]) // NOVO ESTADO DAS TRILHAS
   const [respostasEnviadas, setRespostasEnviadas] = useState({}) 
   const [respondendoId, setRespondendoId] = useState(null)
   // --------------------------------------
@@ -144,9 +144,9 @@ export default function DashboardFundamental() {
       const { data: d } = await supabase.from('desafios_kids').select('*').order('created_at', { ascending: true })
       setDesafios(d || [])
 
-      // NOVA BUSCA: Atividades auxiliares extras em PDF
-      const { data: act } = await supabase.from('atividades_auxiliares').select('*').order('created_at', { ascending: false })
-      setAtividades(act || [])
+      // NOVA BUSCA DAS TRILHAS NO BANCO
+      const { data: listaTrilhas } = await supabase.from('trilhas_gamificadas').select('*').order('created_at', { ascending: true })
+      setTrilhas(listaTrilhas || [])
 
       const { data: r } = await supabase.from('respostas_desafios').select('desafio_id, esta_correto').eq('aluno_id', user.id)
       const mapaRespostas = {}
@@ -242,7 +242,7 @@ export default function DashboardFundamental() {
         <NavItem icon={<LayoutDashboard size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Home" color="#FF0080" active={abaAtiva === 'home'} onClick={() => {setAbaAtiva('home'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<Bot size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi'} onClick={() => {setAbaAtiva('vivi'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<Gamepad2 size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Aventuras" color="#FFDE03" active={abaAtiva === 'aulas'} onClick={() => {setAbaAtiva('aulas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<Paperclip size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Baú de Atividades" color="#4ADE80" active={abaAtiva === 'atividades'} onClick={() => {setAbaAtiva('atividades'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<Map size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Mapa de Trilhas" color="#4ADE80" active={abaAtiva === 'trilhas'} onClick={() => {setAbaAtiva('trilhas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<Trophy size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Desafios" color="#FF0080" active={abaAtiva === 'temas'} onClick={() => {setAbaAtiva('temas'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<UserCircle size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Meu Perfil" color="#70E0BB" active={abaAtiva === 'perfil'} onClick={() => {setAbaAtiva('perfil'); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<LifeBuoy size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Suporte" color="#3B82F6" active={false} onClick={() => window.location.href = '/suporte'} />
@@ -303,8 +303,8 @@ export default function DashboardFundamental() {
               </div>
             </div>
 
-            {/* GRID PRINCIPAL: 3 COLUNAS EM TELAS GRANDES */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {/* GRID REDUZIDO: APENAS VIVI E AVENTURAS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
               
               {/* CARD 1: VIVI */}
               <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
@@ -326,16 +326,49 @@ export default function DashboardFundamental() {
                 <PlayCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[180px] md:h-[180px]" />
               </div>
 
-              {/* CARD 3 NOVO: BAÚ DE ATIVIDADES EXTRAS (PDF) */}
-              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#4ADE80] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('atividades')}>
-                <div className="relative z-10 text-[#1A1A1A]">
-                  <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Baú de<br/>Missões</h3>
-                  <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-lg">Super material para treinar!</p>
-                  <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-lg">ABRIR BAÚ <Paperclip size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
-                </div>
-                <FileText size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform -rotate-12 group-hover:scale-110 transition-transform md:w-[180px] md:h-[180px]" />
+            </div>
+
+              {/* ===== NOVO: TRILHAS GAMIFICADAS CARROSSEL ===== */}
+            <div className="pt-8 md:pt-12">
+              <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
+                  <Map className="text-[#F59E0B] md:w-10 md:h-10" /> Trilhas
+                </h3>
+                <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#F59E0B] hover:translate-x-1 transition-transform flex items-center gap-1">
+                  Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
+                </button>
               </div>
 
+              {trilhas.length === 0 ? (
+                <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão desenhando novos mapas!</p>
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
+                  {trilhas.map((trilha, idx) => (
+                    <div key={trilha.id} className="min-w-[280px] md:min-w-[340px] max-w-[340px] bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform shrink-0">
+                      <div className="h-32 md:h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative rounded-t-[16px] md:rounded-t-[26px] overflow-hidden">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA {idx + 1}</div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={16} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* ===== DESAFIO ATUAL (LOOP DO JOGO) ===== */}
@@ -385,6 +418,8 @@ export default function DashboardFundamental() {
               )}
             </div>
 
+           
+
             <div className="pt-2 md:pt-4">
               <button 
                 onClick={() => window.location.href = '/enviar-redacao'}
@@ -407,38 +442,43 @@ export default function DashboardFundamental() {
         )}
 
         {/* ============================================================ */}
-        {/* ABA: BAÚ DE ATIVIDADES AUXILIARES EXTRAS (LISTAGEM DE PDFs)  */}
+        {/* ABA: MAPA DE TRILHAS (TODAS AS TRILHAS)                      */}
         {/* ============================================================ */}
-        {abaAtiva === 'atividades' && (
-          <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#4ADE80] inline-block">
-              Baú de Missões
+        {abaAtiva === 'trilhas' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#F59E0B] inline-block">
+              Mapa de Missões
             </h2>
             
-            <div className="grid grid-cols-1 gap-4 md:gap-6">
-              {atividades.length === 0 ? (
-                <div className="bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-                  <FileText size={60} className="mx-auto mb-4 text-slate-300" />
-                  <p className="font-black text-xl italic text-[#1A1A1A] uppercase">O baú está vazio por enquanto! ✨</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {trilhas.length === 0 ? (
+                <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-4 text-[#F9F6F0]" />
+                  <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhum mapa disponível ainda!</p>
                 </div>
               ) : (
-                atividades.map((act) => (
-                  <div key={act.id} className="bg-white border-4 border-[#1A1A1A] p-5 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:-translate-y-0.5 transition-all">
-                    <div>
-                      <h4 className="text-lg md:text-2xl font-black uppercase text-[#FF0080] leading-tight">{act.titulo}</h4>
-                      {act.descricao && (
-                        <p className="text-xs md:text-base font-bold text-[#555] italic mt-1 leading-snug">
-                          "{act.descricao}"
-                        </p>
+                trilhas.map((trilha, idx) => (
+                  <div key={trilha.id} className="bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col hover:-translate-y-1 transition-transform overflow-hidden">
+                    <div className="h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
+                      {trilha.capa_url ? (
+                        <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
                       )}
+                      <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA {idx + 1}</div>
+                      <div className="absolute top-2 right-2 bg-white text-[#F59E0B] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                        <Trophy size={12}/> {trilha.total_pontos} PTS
+                      </div>
                     </div>
-                    <a 
-                      href={act.arquivo_url} 
-                      target="_blank" 
-                      className="w-full sm:w-auto px-5 py-3 bg-[#FFDE03] border-2 md:border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-sm uppercase italic shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[3px_3px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all text-center shrink-0"
-                    >
-                      Baixar PDF
-                    </a>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                        <p className="text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                      </div>
+                      <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                        <PlayCircle size={18} /> Começar Trilha
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -447,7 +487,7 @@ export default function DashboardFundamental() {
         )}
 
         {/* ============================================================ */}
-        {/* ABA: HISTÓRICO DE DESAFIOS (ANTIGO TEMAS)                   */}
+        {/* ABA: HISTÓRICO DE DESAFIOS (MANTIDA)                        */}
         {/* ============================================================ */}
         {abaAtiva === 'temas' && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-left-8 duration-500">
@@ -495,6 +535,7 @@ export default function DashboardFundamental() {
           </div>
         )}
 
+        {/* ... (AS DEMAIS ABAS COMO vivi, aulas e perfil CONTINUAM AQUI EMBAIXO INALTERADAS) ... */}
         {abaAtiva === 'vivi' && (
           <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
             <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-8 border-b-4 md:border-b-8 border-[#A78BFA] inline-block text-[#1A1A1A]">Assistente Virtual</h2>
@@ -620,28 +661,6 @@ export default function DashboardFundamental() {
           </div>
         )}
 
-        {redacaoSelecionada && (
-          <div className="max-w-5xl mx-auto animate-in zoom-in-95 duration-500">
-            <button onClick={() => setRedacaoSelecionada(null)} className="flex items-center gap-2 font-black text-sm md:text-xl text-[#1A1A1A] mb-6 md:mb-8 hover:text-[#FF0080] transition-colors uppercase italic"><ArrowLeft size={20} strokeWidth={3} className="md:w-6 md:h-6" /> Voltar para Base</button>
-            <div className="flex flex-col lg:flex-row gap-6 md:gap-10">
-              <div className="flex-1 bg-white border-4 border-[#1A1A1A] p-6 md:p-12 rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] transform md:-rotate-1 relative overflow-hidden">
-                <h1 className="text-2xl md:text-4xl font-black uppercase text-[#1A1A1A] mb-4 md:mb-6 border-b-4 border-dashed border-[#1A1A1A]/20 pb-3 md:pb-4 leading-tight">{redacaoSelecionada.titulo}</h1>
-                <p className="text-base md:text-xl font-medium text-[#333] leading-relaxed whitespace-pre-wrap font-serif italic">{redacaoSelecionada.texto_redacao || "Você mandou uma foto/arquivo para o mestre."}</p>
-              </div>
-              <div className="lg:w-80 space-y-6 md:space-y-8 transform md:rotate-1">
-                <div className="p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] text-center">
-                  <span className="text-sm md:text-lg font-black uppercase tracking-tighter text-[#1A1A1A]">Sua Pontuação</span>
-                  <h2 className="text-5xl md:text-7xl font-black text-[#1A1A1A] my-2 md:my-4 leading-none">{redacaoSelecionada.correcoes?.[0]?.nota || '?'}</h2>
-                  <p className="text-[10px] md:text-xs font-black uppercase italic">Mestre {redacaoSelecionada.correcoes?.[0]?.perfis?.nome_completo || '...'}</p>
-                </div>
-                <div className="p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#FFDE03] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
-                  <h3 className="text-lg md:text-xl font-black uppercase mb-3 md:mb-4 flex items-center gap-2 border-b-2 md:border-b-4 border-[#1A1A1A] pb-2"><Sparkles size={20} strokeWidth={3} className="md:w-6 md:h-6" /> Dica do Mestre</h3>
-                  <p className="text-base md:text-lg font-bold text-[#1A1A1A] leading-tight italic">"{redacaoSelecionada.correcoes?.[0]?.comentarios || "O mestre ainda está lendo sua história..."}"</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )
