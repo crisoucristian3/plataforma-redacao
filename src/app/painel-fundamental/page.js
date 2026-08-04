@@ -30,7 +30,7 @@ export default function DashboardFundamental() {
   
   // --- LOGICA DOS DESAFIOS E TRILHAS ---
   const [desafios, setDesafios] = useState([])
-  const [trilhas, setTrilhas] = useState([]) // NOVO ESTADO DAS TRILHAS
+  const [trilhas, setTrilhas] = useState([]) // ESTADO DAS TRILHAS
   const [respostasEnviadas, setRespostasEnviadas] = useState({}) 
   const [respondendoId, setRespondendoId] = useState(null)
   // --------------------------------------
@@ -144,7 +144,7 @@ export default function DashboardFundamental() {
       const { data: d } = await supabase.from('desafios_kids').select('*').order('created_at', { ascending: true })
       setDesafios(d || [])
 
-      // NOVA BUSCA DAS TRILHAS NO BANCO
+      // BUSCA AS TRILHAS NO BANCO
       const { data: listaTrilhas } = await supabase.from('trilhas_gamificadas').select('*').order('created_at', { ascending: true })
       setTrilhas(listaTrilhas || [])
 
@@ -207,6 +207,10 @@ export default function DashboardFundamental() {
   }
 
   const desafioAtual = desafios.find(d => respostasEnviadas[d.id] === undefined);
+
+  // FILTRA AS TRILHAS POR DISCIPLINA
+  const trilhasLinguagens = trilhas.filter(t => t.disciplina === 'Linguagens' || !t.disciplina)
+  const trilhasMatematica = trilhas.filter(t => t.disciplina === 'Matemática')
 
   if (loading) return (
     <div className="h-screen bg-[#FDFBF7] flex flex-col items-center justify-center gap-4 p-4">
@@ -306,7 +310,6 @@ export default function DashboardFundamental() {
             {/* GRID REDUZIDO: APENAS VIVI E AVENTURAS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
               
-              {/* CARD 1: VIVI */}
               <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
                 <div className="relative z-10 text-white">
                   <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Falar com<br/>a Vivi</h3>
@@ -316,7 +319,6 @@ export default function DashboardFundamental() {
                 <Bot size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[180px] md:h-[180px]" />
               </div>
 
-              {/* CARD 2: AVENTURAS */}
               <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
                 <div className="relative z-10 text-[#1A1A1A]">
                   <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Novas<br/>Aventuras</h3>
@@ -328,25 +330,25 @@ export default function DashboardFundamental() {
 
             </div>
 
-              {/* ===== NOVO: TRILHAS GAMIFICADAS CARROSSEL ===== */}
+            {/* ===== TRILHAS DE LINGUAGENS (CARROSSEL) ===== */}
             <div className="pt-8 md:pt-12">
               <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
                 <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
-                  <Map className="text-[#F59E0B] md:w-10 md:h-10" /> Trilhas
+                  <Map className="text-[#F59E0B] md:w-10 md:h-10" /> Trilhas de português
                 </h3>
                 <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#F59E0B] hover:translate-x-1 transition-transform flex items-center gap-1">
                   Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
                 </button>
               </div>
 
-              {trilhas.length === 0 ? (
+              {trilhasLinguagens.length === 0 ? (
                 <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
                   <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
                   <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão desenhando novos mapas!</p>
                 </div>
               ) : (
                 <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
-                  {trilhas.map((trilha, idx) => (
+                  {trilhasLinguagens.map((trilha, idx) => (
                     <div key={trilha.id} className="min-w-[280px] md:min-w-[340px] max-w-[340px] bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform shrink-0">
                       <div className="h-32 md:h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative rounded-t-[16px] md:rounded-t-[26px] overflow-hidden">
                         {trilha.capa_url ? (
@@ -354,7 +356,7 @@ export default function DashboardFundamental() {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
                         )}
-                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA {idx + 1}</div>
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA LING. {idx + 1}</div>
                       </div>
                       <div className="p-5 flex-1 flex flex-col justify-between">
                         <div>
@@ -362,6 +364,49 @@ export default function DashboardFundamental() {
                           <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
                         </div>
                         <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={16} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ===== NOVO: TRILHAS DE MATEMÁTICA (CARROSSEL) ===== */}
+            <div className="pt-4 md:pt-6">
+              <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#3B82F6] pb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
+                  <Map className="text-[#3B82F6] md:w-10 md:h-10" /> Trilhas de Matemática
+                </h3>
+                <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#3B82F6] hover:translate-x-1 transition-transform flex items-center gap-1">
+                  Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              {trilhasMatematica.length === 0 ? (
+                <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão calculando novos mapas!</p>
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
+                  {trilhasMatematica.map((trilha, idx) => (
+                    <div key={trilha.id} className="min-w-[280px] md:min-w-[340px] max-w-[340px] bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform shrink-0">
+                      <div className="h-32 md:h-40 bg-[#3B82F6] border-b-4 border-[#1A1A1A] relative rounded-t-[16px] md:rounded-t-[26px] overflow-hidden">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA MAT. {idx + 1}</div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#3B82F6] border-2 md:border-4 border-[#1A1A1A] text-white rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
                           <PlayCircle size={16} /> Começar Trilha
                         </button>
                       </div>
@@ -418,8 +463,6 @@ export default function DashboardFundamental() {
               )}
             </div>
 
-           
-
             <div className="pt-2 md:pt-4">
               <button 
                 onClick={() => window.location.href = '/enviar-redacao'}
@@ -442,47 +485,91 @@ export default function DashboardFundamental() {
         )}
 
         {/* ============================================================ */}
-        {/* ABA: MAPA DE TRILHAS (TODAS AS TRILHAS)                      */}
+        {/* ABA: MAPA DE TRILHAS (TODAS AS TRILHAS DIVIDIDAS)            */}
         {/* ============================================================ */}
         {abaAtiva === 'trilhas' && (
-          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#F59E0B] inline-block">
-              Mapa de Missões
-            </h2>
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500 space-y-12">
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {trilhas.length === 0 ? (
-                <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-                  <Map size={60} className="mx-auto mb-4 text-[#F9F6F0]" />
-                  <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhum mapa disponível ainda!</p>
-                </div>
-              ) : (
-                trilhas.map((trilha, idx) => (
-                  <div key={trilha.id} className="bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col hover:-translate-y-1 transition-transform overflow-hidden">
-                    <div className="h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
-                      {trilha.capa_url ? (
-                        <img src={trilha.capa_url} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
-                      )}
-                      <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA {idx + 1}</div>
-                      <div className="absolute top-2 right-2 bg-white text-[#F59E0B] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
-                        <Trophy size={12}/> {trilha.total_pontos} PTS
-                      </div>
-                    </div>
-                    <div className="p-5 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 className="text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
-                        <p className="text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
-                      </div>
-                      <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
-                        <PlayCircle size={18} /> Começar Trilha
-                      </button>
-                    </div>
+            {/* SESSÃO DE LINGUAGENS */}
+            <div>
+              <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#F59E0B] inline-block">
+                Mapas de Linguagens
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {trilhasLinguagens.length === 0 ? (
+                  <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                    <Map size={60} className="mx-auto mb-4 text-[#F9F6F0]" />
+                    <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhum mapa disponível ainda!</p>
                   </div>
-                ))
-              )}
+                ) : (
+                  trilhasLinguagens.map((trilha, idx) => (
+                    <div key={trilha.id} className="bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col hover:-translate-y-1 transition-transform overflow-hidden">
+                      <div className="h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA LING. {idx + 1}</div>
+                        <div className="absolute top-2 right-2 bg-white text-[#F59E0B] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                          <Trophy size={12}/> {trilha.total_pontos} PTS
+                        </div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={18} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+
+            {/* SESSÃO DE MATEMÁTICA */}
+            <div>
+              <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#3B82F6] inline-block">
+                Mapas de Matemática
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                {trilhasMatematica.length === 0 ? (
+                  <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                    <Map size={60} className="mx-auto mb-4 text-[#F9F6F0]" />
+                    <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Os mestres estão calculando novos mapas!</p>
+                  </div>
+                ) : (
+                  trilhasMatematica.map((trilha, idx) => (
+                    <div key={trilha.id} className="bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col hover:-translate-y-1 transition-transform overflow-hidden">
+                      <div className="h-40 bg-[#3B82F6] border-b-4 border-[#1A1A1A] relative">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA MAT. {idx + 1}</div>
+                        <div className="absolute top-2 right-2 bg-white text-[#3B82F6] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                          <Trophy size={12}/> {trilha.total_pontos} PTS
+                        </div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#3B82F6] border-2 md:border-4 border-[#1A1A1A] text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={18} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
           </div>
         )}
 
