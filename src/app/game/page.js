@@ -113,6 +113,7 @@ export default function MundoMatematica() {
   const [tocarAcerto] = useSound('/acerto.mp3', { volume: isMuted ? 0 : 0.7 })
   const [tocarErro] = useSound('/erro.mp3', { volume: isMuted ? 0 : 0.6 })
   const [playBgm, { pause: pauseBgm }] = useSound('/lofi.mp3', { volume: 0.2, loop: true })
+  const [tocarVilao] = useSound('/vilao.mp3', { volume: isMuted ? 0 : 0.8 })
 
   const toggleMute = () => {
     tocarClick()
@@ -171,6 +172,7 @@ export default function MundoMatematica() {
     tocarClick()
 
     if (FASES_CHEFAO.includes(fase.id)) {
+      tocarVilao() // <--- SÓ ADICIONAR ESSA LINHA AQUI!
       setIntroVilaoAberto(fase)
     } else {
       abrirDesafio(fase)
@@ -279,8 +281,8 @@ export default function MundoMatematica() {
                 className="relative flex flex-col items-center gap-2 p-4 bg-white border-4 border-[#1A1A1A] rounded-2xl hover:bg-[#D8F3DC] hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]"
               >
                 <Leaf size={16} className="absolute -top-2 -right-2 text-[#40916C] bg-white rounded-full p-0.5 border-2 border-[#1A1A1A] rotate-12" />
-                <div className="w-34 h-24 rounded-full overflow-hidden border-4 border-[#40916C] bg-[#F9F6F0]">
-                  <img src={avatar.img} alt={avatar.nome} className="w-full h-full object-cover" />
+                <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-[#40916C] bg-[#F9F6F0] shrink-0">
+                <img src={avatar.img} alt={avatar.nome} className="w-full h-full object-cover object-top" />
                 </div>
                 <span className="font-black text-xs uppercase text-[#1A1A1A]">{avatar.nome.split(' ')[0]}</span>
               </button>
