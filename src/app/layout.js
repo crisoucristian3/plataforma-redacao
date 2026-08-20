@@ -14,6 +14,8 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Ponto&Vírgula",
   description: "O poder na ponta do lápis",
+  manifest: '/manifest.json', // <-- ADICIONE ESTA LINHA
+  themeColor: '#FFDE03',      // <-- E ESTA AQUI TAMBÉM
 };
 
 export default function RootLayout({ children }) {
