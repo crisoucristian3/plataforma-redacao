@@ -135,7 +135,7 @@ export default function DashboardFundamental() {
       // NOVO: BUSCAR O RANKING GERAL NO BANCO
       try {
         const { data: rankData } = await supabase.from('perfis')
-          .select('id, nome_completo, foto_url, pontuacao')
+          .select('id, nome_completo, foto_url, pontuacao, escola')
           .eq('tipo_usuario', 'aluno')
           .eq('foco_ensino', 'fundamental')
           .order('pontuacao', { ascending: false })
@@ -198,7 +198,6 @@ export default function DashboardFundamental() {
       
       if (acerto) {
         alert("🌟 MANDOU BEM! Você acertou!")
-        // NOVO: Adiciona 10 pontos ao perfil do aluno quando ele acerta
         try {
           const { data: perfAtual } = await supabase.from('perfis').select('pontuacao').eq('id', user.id).single()
           const novosPontos = (perfAtual?.pontuacao || 0) + 10
@@ -303,255 +302,253 @@ export default function DashboardFundamental() {
         </div>
       )}
 
-      <main className={`flex-1 p-4 sm:p-6 md:p-12 overflow-y-auto relative pb-24 lg:pb-12 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
+      {/* ÁREA PRINCIPAL COM PADDING AJUSTADO E OVERFLOW */}
+      <main className={`flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto relative pb-24 lg:pb-12 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
         <div className="absolute top-10 right-10 opacity-10 pointer-events-none hidden md:block"><Star className="w-[100px] h-[100px] lg:w-[150px] lg:h-[150px] text-[#FFDE03] fill-[#FFDE03] transform rotate-45" /></div>
         
         <div className="h-16 lg:hidden"></div>
 
         {abaAtiva === 'home' && !redacaoSelecionada && (
-          <div className="max-w-7xl mx-auto flex flex-col xl:flex-row gap-8 md:gap-12">
+          // VOLTOU AO PADRÃO: TUDO EMPILHADO PERFEITAMENTE DENTRO DA LARGURA MÁXIMA
+          <div className="max-w-6xl mx-auto space-y-10 md:space-y-12">
             
-            {/* LADO ESQUERDO: CONTEÚDO PRINCIPAL DA HOME */}
-            <div className="flex-1 space-y-8 md:space-y-12">
-              <header className="relative mt-2 md:mt-0">
-                 <div className="absolute -top-4 -left-2 md:-top-6 md:-left-4 w-20 md:w-32 h-6 md:h-10 bg-[#70E0BB]/40 -rotate-2 rounded-lg md:rounded-xl"></div>
-                 <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Oi, <span className="text-[#A78BFA] drop-shadow-[2px_2px_0px_rgba(26,26,26,1)] md:drop-shadow-[3px_3px_0px_rgba(26,26,26,1)]">{nome.split(' ')[0]}</span>!</h1>
-                 <p className="text-sm sm:text-base md:text-2xl font-bold text-[#555] mt-2 md:mt-3 flex items-center gap-2 italic"><Rocket size={20} className="text-[#FF0080] md:w-6 md:h-6" /> Vamos aprender brincando?</p>
-              </header>
+            <header className="relative mt-2 md:mt-0">
+               <div className="absolute -top-4 -left-2 md:-top-6 md:-left-4 w-20 md:w-32 h-6 md:h-10 bg-[#70E0BB]/40 -rotate-2 rounded-lg md:rounded-xl"></div>
+               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-[#1A1A1A] tracking-tighter uppercase italic transform -rotate-1 leading-tight">Oi, <span className="text-[#A78BFA] drop-shadow-[2px_2px_0px_rgba(26,26,26,1)] md:drop-shadow-[3px_3px_0px_rgba(26,26,26,1)]">{nome.split(' ')[0]}</span>!</h1>
+               <p className="text-sm sm:text-base md:text-xl font-bold text-[#555] mt-2 md:mt-3 flex items-center gap-2 italic"><Rocket size={20} className="text-[#FF0080] md:w-6 md:h-6" /> Vamos aprender brincando?</p>
+            </header>
 
-              <div className="p-4 md:p-6 bg-white border-4 border-[#1A1A1A] rounded-2xl md:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 md:gap-6 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transform rotate-1 text-center sm:text-left">
-                <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto">
-                  <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${creditosRestantes > 0 ? 'bg-[#FFDE03]' : 'bg-red-400'}`}>
-                     <Star size={24} className="text-[#1A1A1A] fill-[#1A1A1A] md:w-8 md:h-8" />
-                  </div>
-                  <div>
-                    <h4 className="text-base md:text-xl font-black uppercase italic text-[#1A1A1A]">Suas Fichas de Texto</h4>
-                    <p className="text-xs md:text-sm font-bold opacity-70">Todo mês novas fichas!</p>
-                  </div>
+            <div className="p-4 md:p-6 bg-white border-4 border-[#1A1A1A] rounded-2xl md:rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 md:gap-6 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transform rotate-1 text-center sm:text-left">
+              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full sm:w-auto">
+                <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] ${creditosRestantes > 0 ? 'bg-[#FFDE03]' : 'bg-red-400'}`}>
+                   <Star size={24} className="text-[#1A1A1A] fill-[#1A1A1A] md:w-8 md:h-8" />
                 </div>
-                <div className="text-2xl md:text-4xl font-black bg-[#F9F6F0] px-4 py-2 md:px-6 md:py-3 border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl shadow-inner text-[#FF0080] w-full sm:w-auto text-center">
-                  {creditosRestantes} <span className="text-sm md:text-lg uppercase opacity-50 text-[#1A1A1A]">/ 6</span>
+                <div>
+                  <h4 className="text-base md:text-xl font-black uppercase italic text-[#1A1A1A]">Suas Fichas de Texto</h4>
+                  <p className="text-xs md:text-sm font-bold opacity-70">Todo mês novas fichas!</p>
                 </div>
               </div>
+              <div className="text-2xl md:text-4xl font-black bg-[#F9F6F0] px-4 py-2 md:px-6 md:py-3 border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl shadow-inner text-[#FF0080] w-full sm:w-auto text-center shrink-0">
+                {creditosRestantes} <span className="text-sm md:text-lg uppercase opacity-50 text-[#1A1A1A]">/ 6</span>
+              </div>
+            </div>
 
-              {/* GRID REDUZIDO: APENAS VIVI E AVENTURAS */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-                
-                <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
-                  <div className="relative z-10 text-white">
-                    <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Falar com<br/>a Vivi</h3>
-                    <p className="font-bold opacity-90 mb-4 md:mb-6 text-sm md:text-lg">Professora robô super esperta!</p>
-                    <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-lg">BATER PAPO <MessageCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
-                  </div>
-                  <Bot size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[180px] md:h-[180px]" />
+            {/* BOTÕES LADO A LADO NUM GRID LIMPO E ALINHADO */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
+                <div className="relative z-10 text-white">
+                  <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Falar com<br/>a Vivi</h3>
+                  <p className="font-bold opacity-90 mb-4 md:mb-6 text-sm md:text-base">Professora robô super esperta!</p>
+                  <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">BATER PAPO <MessageCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
                 </div>
-
-                <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
-                  <div className="relative z-10 text-[#1A1A1A]">
-                    <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Novas<br/>Aventuras</h3>
-                    <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-lg">Venha assistir as aulas!</p>
-                    <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-lg">ASSISTIR <PlayCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
-                  </div>
-                  <PlayCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[180px] md:h-[180px]" />
-                </div>
-
+                <Bot size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
               </div>
 
-              {/* TRILHAS DE LINGUAGENS (CARROSSEL) */}
-              <div className="pt-8 md:pt-12">
-                <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
-                  <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
-                    <Map className="text-[#F59E0B] md:w-10 md:h-10" /> Trilhas de português
-                  </h3>
-                  <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#F59E0B] hover:translate-x-1 transition-transform flex items-center gap-1">
-                    Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
-                  </button>
+              <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('aulas')}>
+                <div className="relative z-10 text-[#1A1A1A]">
+                  <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Novas<br/>Aventuras</h3>
+                  <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-base">Venha assistir as aulas!</p>
+                  <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">ASSISTIR <PlayCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
                 </div>
-
-                {trilhasLinguagens.length === 0 ? (
-                  <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-                    <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
-                    <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão desenhando novos mapas!</p>
-                  </div>
-                ) : (
-                  <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
-                    {trilhasLinguagens.map((trilha, idx) => (
-                      <div key={trilha.id} className="min-w-[280px] md:min-w-[340px] max-w-[340px] bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform shrink-0">
-                        <div className="h-32 md:h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative rounded-t-[16px] md:rounded-t-[26px] overflow-hidden">
-                          {trilha.capa_url ? (
-                            <img src={trilha.capa_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
-                          )}
-                          <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA LING. {idx + 1}</div>
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
-                            <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
-                          </div>
-                          <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
-                            <PlayCircle size={16} /> Começar Trilha
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <PlayCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
               </div>
+            </div>
 
-              {/* TRILHAS DE MATEMÁTICA (CARROSSEL) */}
-              <div className="pt-4 md:pt-6">
-                <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#3B82F6] pb-2">
-                  <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
-                    <Map className="text-[#3B82F6] md:w-10 md:h-10" /> Trilhas de Matemática
-                  </h3>
-                  <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#3B82F6] hover:translate-x-1 transition-transform flex items-center gap-1">
-                    Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
-                  </button>
-                </div>
-
-                {trilhasMatematica.length === 0 ? (
-                  <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-                    <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
-                    <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão calculando novos mapas!</p>
-                  </div>
-                ) : (
-                  <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
-                    {trilhasMatematica.map((trilha, idx) => (
-                      <div key={trilha.id} className="min-w-[280px] md:min-w-[340px] max-w-[340px] bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform shrink-0">
-                        <div className="h-32 md:h-40 bg-[#3B82F6] border-b-4 border-[#1A1A1A] relative rounded-t-[16px] md:rounded-t-[26px] overflow-hidden">
-                          {trilha.capa_url ? (
-                            <img src={trilha.capa_url} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
-                          )}
-                          <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs md:text-sm font-black uppercase">TRILHA MAT. {idx + 1}</div>
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
-                            <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
-                          </div>
-                          <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#3B82F6] border-2 md:border-4 border-[#1A1A1A] text-white rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
-                            <PlayCircle size={16} /> Começar Trilha
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* DESAFIO ATUAL (LOOP DO JOGO) */}
-              <div className="pt-2 md:pt-4">
-                <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#FFDE03] pb-2">
-                  <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">
-                    Desafio do Dia
-                  </h3>
-                  <button onClick={() => {setAbaAtiva('temas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#FF0080] hover:translate-x-1 transition-transform flex items-center gap-1">
-                    Ver Todos <ArrowRight size={14} className="md:w-5 md:h-5" />
-                  </button>
-                </div>
-
-                {desafios.length === 0 ? (
-                  <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
-                    <Trophy size={60} className="mx-auto mb-3 md:mb-4 text-[#FFDE03] md:w-20 md:h-20" />
-                    <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Sem novos desafios hoje!</p>
-                  </div>
-                ) : desafioAtual ? (
-                  <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500" key={desafioAtual.id}>
-                    {desafioAtual.imagem_url && <div className="h-32 sm:h-48 md:h-64 border-b-4 border-[#1A1A1A]"><img src={desafioAtual.imagem_url} className="w-full h-full object-cover" /></div>}
-                    <div className="p-5 md:p-8">
-                      <h3 className="text-xl md:text-2xl font-black uppercase text-[#FF0080] leading-tight mb-2 md:mb-3">{desafioAtual.titulo}</h3>
-                      <p className="text-base md:text-xl font-bold mb-6 md:mb-8 italic text-[#1A1A1A]">"{desafioAtual.pergunta}"</p>
-                      
-                      {desafioAtual.tipo_pergunta === 'multipla_escolha' ? (
-                        <div className="grid gap-2 md:gap-3">
-                          {desafioAtual.opcoes?.map((opcao, i) => (
-                            <button key={i} onClick={() => responderDesafio(desafioAtual, opcao)} className="w-full p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] font-black text-sm md:text-base text-left flex justify-between items-center transition-all bg-[#F9F6F0] hover:bg-[#FFDE03] active:translate-y-1">
-                              {opcao}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <form onSubmit={(e) => { e.preventDefault(); responderDesafio(desafioAtual, e.target.resposta.value); }} className="flex flex-col sm:flex-row gap-2">
-                          <input name="resposta" placeholder="Digite sua resposta..." className="flex-1 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] font-bold text-sm md:text-base outline-none focus:bg-[#FFDE03]/20" required />
-                          <button type="submit" className="bg-[#1A1A1A] text-white p-3 md:px-6 rounded-xl md:rounded-2xl font-black uppercase text-sm md:text-base hover:bg-[#FF0080] transition-colors shadow-[2px_2px_0px_0px_rgba(255,0,128,1)]">Enviar</button>
-                        </form>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-[#70E0BB] border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
-                    <Sparkles size={60} className="mx-auto mb-3 md:mb-4 text-white md:w-20 md:h-20" />
-                    <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase leading-tight">Incrível! Você completou todos os desafios!</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 md:pt-4">
-                <button 
-                  onClick={() => window.location.href = '/enviar-redacao'}
-                  className="w-full relative group p-6 sm:p-8 md:p-12 rounded-[30px] md:rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 md:hover:translate-x-2 md:hover:translate-y-2 hover:shadow-none transition-all cursor-pointer overflow-hidden text-left"
-                >
-                  <div className="relative z-10 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
-                    <div>
-                      <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase mb-1 md:mb-2 italic">Escrever Meu Texto!</h3>
-                      <p className="font-bold opacity-90 text-sm sm:text-base md:text-xl">Aceite o desafio e envie sua história para o mestre.</p>
-                    </div>
-                    <div className="w-14 h-14 md:w-20 md:h-20 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-full flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group-hover:scale-110 transition-transform self-end md:self-auto">
-                      <Pencil size={24} className="text-[#1A1A1A] md:w-10 md:h-10" />
-                    </div>
-                  </div>
-                  <Sparkles size={120} className="absolute -right-4 -bottom-10 md:-right-10 md:-bottom-20 text-white/10 transform rotate-12 md:w-[250px] md:h-[250px]" />
+            {/* TRILHAS DE LINGUAGENS */}
+            <div>
+              <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
+                  <Map className="text-[#F59E0B] md:w-8 md:h-8" /> Trilhas de português
+                </h3>
+                <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#F59E0B] hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
+                  Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
                 </button>
               </div>
 
+              {trilhasLinguagens.length === 0 ? (
+                <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão desenhando novos mapas!</p>
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
+                  {trilhasLinguagens.map((trilha, idx) => (
+                    <div key={trilha.id} className="w-[280px] md:w-[320px] shrink-0 bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform overflow-hidden">
+                      <div className="h-32 md:h-40 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA LING. {idx + 1}</div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={16} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* ============================================================ */}
-            {/* LADO DIREITO: NOVO RANKING GERAL (TOP 10 HERÓIS)             */}
-            {/* ============================================================ */}
-            <div className="w-full xl:w-[380px] shrink-0 mt-8 xl:mt-0">
-              <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] p-6 md:p-8 flex flex-col h-full max-h-[850px] sticky top-8">
-                
+            {/* TRILHAS DE MATEMÁTICA */}
+            <div>
+              <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#3B82F6] pb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
+                  <Map className="text-[#3B82F6] md:w-8 md:h-8" /> Trilhas de Matemática
+                </h3>
+                <button onClick={() => {setAbaAtiva('trilhas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#3B82F6] hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
+                  Ver Todas <ArrowRight size={14} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              {trilhasMatematica.length === 0 ? (
+                <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <Map size={60} className="mx-auto mb-3 md:mb-4 text-[#F9F6F0] md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Os mestres estão calculando novos mapas!</p>
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 px-1 snap-x custom-scrollbar">
+                  {trilhasMatematica.map((trilha, idx) => (
+                    <div key={trilha.id} className="w-[280px] md:w-[320px] shrink-0 bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] flex flex-col snap-center hover:-translate-y-1 transition-transform overflow-hidden">
+                      <div className="h-32 md:h-40 bg-[#3B82F6] border-b-4 border-[#1A1A1A] relative">
+                        {trilha.capa_url ? (
+                          <img src={trilha.capa_url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        )}
+                        <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA MAT. {idx + 1}</div>
+                        <div className="absolute top-2 right-2 bg-white text-[#3B82F6] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                          <Trophy size={12}/> {trilha.total_pontos} PTS
+                        </div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] mb-2">{trilha.titulo}</h4>
+                          <p className="text-xs md:text-sm font-bold text-[#555] line-clamp-2 italic mb-4">{trilha.tema}</p>
+                        </div>
+                        <button onClick={() => window.location.href = `/jogar-trilha/${trilha.id}`} className="w-full py-3 bg-[#3B82F6] border-2 md:border-4 border-[#1A1A1A] text-white rounded-xl font-black uppercase text-xs md:text-sm flex items-center justify-center gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                          <PlayCircle size={18} /> Começar Trilha
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* DESAFIO ATUAL */}
+            <div>
+              <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#FFDE03] pb-2">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">
+                  Desafio do Dia
+                </h3>
+                <button onClick={() => {setAbaAtiva('temas'); window.scrollTo(0,0);}} className="text-xs md:text-base font-black uppercase text-[#FF0080] hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
+                  Ver Todos <ArrowRight size={14} className="md:w-5 md:h-5" />
+                </button>
+              </div>
+
+              {desafios.length === 0 ? (
+                <div className="bg-white border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
+                  <Trophy size={60} className="mx-auto mb-3 md:mb-4 text-[#FFDE03] md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase">Sem novos desafios hoje!</p>
+                </div>
+              ) : desafioAtual ? (
+                <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[10px_10px_0px_0px_rgba(26,26,26,1)] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500" key={desafioAtual.id}>
+                  {desafioAtual.imagem_url && <div className="h-32 sm:h-48 md:h-64 border-b-4 border-[#1A1A1A]"><img src={desafioAtual.imagem_url} className="w-full h-full object-cover" /></div>}
+                  <div className="p-5 md:p-8">
+                    <h3 className="text-xl md:text-2xl font-black uppercase text-[#FF0080] leading-tight mb-2 md:mb-3">{desafioAtual.titulo}</h3>
+                    <p className="text-base md:text-xl font-bold mb-6 md:mb-8 italic text-[#1A1A1A]">"{desafioAtual.pergunta}"</p>
+                    
+                    {desafioAtual.tipo_pergunta === 'multipla_escolha' ? (
+                      <div className="grid gap-2 md:gap-3">
+                        {desafioAtual.opcoes?.map((opcao, i) => (
+                          <button key={i} onClick={() => responderDesafio(desafioAtual, opcao)} className="w-full p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] font-black text-sm md:text-base text-left flex justify-between items-center transition-all bg-[#F9F6F0] hover:bg-[#FFDE03] active:translate-y-1">
+                            {opcao}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <form onSubmit={(e) => { e.preventDefault(); responderDesafio(desafioAtual, e.target.resposta.value); }} className="flex flex-col sm:flex-row gap-2">
+                        <input name="resposta" placeholder="Digite sua resposta..." className="flex-1 p-3 md:p-4 rounded-xl md:rounded-2xl border-2 md:border-4 border-[#1A1A1A] font-bold text-sm md:text-base outline-none focus:bg-[#FFDE03]/20" required />
+                        <button type="submit" className="bg-[#1A1A1A] text-white p-3 md:px-6 rounded-xl md:rounded-2xl font-black uppercase text-sm md:text-base hover:bg-[#FF0080] transition-colors shadow-[2px_2px_0px_0px_rgba(255,0,128,1)]">Enviar</button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-[#70E0BB] border-4 border-[#1A1A1A] p-6 md:p-10 rounded-[30px] md:rounded-[40px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] transform rotate-1">
+                  <Sparkles size={60} className="mx-auto mb-3 md:mb-4 text-white md:w-20 md:h-20" />
+                  <p className="font-black text-lg md:text-2xl italic text-[#1A1A1A] uppercase leading-tight">Incrível! Você completou todos os desafios!</p>
+                </div>
+              )}
+            </div>
+
+            {/* BOTÃO ESCREVER TEXTO */}
+            <div>
+              <button 
+                onClick={() => window.location.href = '/enviar-redacao'}
+                className="w-full relative group p-6 sm:p-8 md:p-12 rounded-[30px] md:rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 md:hover:translate-x-2 md:hover:translate-y-2 hover:shadow-none transition-all cursor-pointer overflow-hidden text-left"
+              >
+                <div className="relative z-10 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+                  <div>
+                    <h3 className="text-2xl sm:text-3xl md:text-5xl font-black uppercase mb-1 md:mb-2 italic">Escrever Meu Texto!</h3>
+                    <p className="font-bold opacity-90 text-sm sm:text-base md:text-xl">Aceite o desafio e envie sua história para o mestre.</p>
+                  </div>
+                  <div className="w-14 h-14 md:w-20 md:h-20 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-full flex items-center justify-center shrink-0 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group-hover:scale-110 transition-transform self-end md:self-auto">
+                    <Pencil size={24} className="text-[#1A1A1A] md:w-10 md:h-10" />
+                  </div>
+                </div>
+                <Sparkles size={120} className="absolute -right-4 -bottom-10 md:-right-10 md:-bottom-20 text-white/10 transform rotate-12 md:w-[250px] md:h-[250px]" />
+              </button>
+            </div>
+
+            {/* RANKING GERAL (TOP 10 HERÓIS ALINHADO NO FUNDO) */}
+            <div className="pt-4 md:pt-8">
+              <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] p-6 md:p-10">
                 <div className="flex items-center gap-3 mb-6 md:mb-8 border-b-4 border-[#FF0080] pb-4">
-                  <div className="w-12 h-12 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                  <div className="w-12 h-12 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] shrink-0">
                     <Trophy className="text-[#1A1A1A]" size={24} strokeWidth={3}/>
                   </div>
-                  <h3 className="text-2xl font-black uppercase italic text-[#1A1A1A] leading-tight">
-                    Top 10<br/><span className="text-[#FF0080]">Heróis</span>
+                  <h3 className="text-2xl md:text-4xl font-black uppercase italic text-[#1A1A1A] leading-tight">
+                    Top 10 Heróis
                   </h3>
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                  {ranking.length === 0 ? (
-                    <div className="text-center py-10 opacity-60">
-                      <Trophy size={40} className="mx-auto mb-3" />
-                      <p className="font-bold text-lg italic uppercase">O ranking está<br/>sendo calculado...</p>
-                    </div>
-                  ) : (
-                    ranking.map((aluno, index) => (
-                      <div key={aluno.id} className="flex items-center gap-3 p-3 md:p-4 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-2xl md:rounded-3xl hover:bg-white hover:-translate-y-1 transition-all shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] group">
-                        
-                        <div className={`font-black text-xl w-8 text-center shrink-0 ${index === 0 ? 'text-[#F59E0B] text-3xl' : index === 1 ? 'text-[#94A3B8] text-2xl' : index === 2 ? 'text-[#B45309] text-2xl' : 'text-[#1A1A1A]'}`}>
+                {ranking.length === 0 ? (
+                  <div className="text-center py-10 opacity-60">
+                    <Trophy size={60} className="mx-auto mb-3" />
+                    <p className="font-bold text-lg md:text-xl italic uppercase">O ranking está sendo calculado...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    {ranking.map((aluno, index) => (
+                      <div key={aluno.id} className="flex items-center gap-3 md:gap-4 p-3 md:p-4 bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-2xl hover:bg-white hover:-translate-y-1 transition-all shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] group">
+                        <div className={`font-black text-xl md:text-2xl w-8 md:w-10 text-center shrink-0 ${index === 0 ? 'text-[#F59E0B] text-3xl md:text-4xl' : index === 1 ? 'text-[#94A3B8] text-2xl md:text-3xl' : index === 2 ? 'text-[#B45309] text-2xl md:text-3xl' : 'text-[#1A1A1A]'}`}>
                           {index + 1}º
                         </div>
-                        
-                        <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full border-2 md:border-4 border-[#1A1A1A] overflow-hidden shrink-0 bg-white ${index === 0 ? 'shadow-[0_0_15px_rgba(245,158,11,0.6)]' : ''}`}>
+                        <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full border-2 md:border-4 border-[#1A1A1A] overflow-hidden shrink-0 bg-white ${index === 0 ? 'shadow-[0_0_15px_rgba(245,158,11,0.6)]' : ''}`}>
                           <img src={aluno.foto_url || AVATARES_DISPONIVEIS[0]} className="w-full h-full object-cover" />
                         </div>
-                        
                         <div className="flex-1 overflow-hidden">
-                          <p className="font-black text-sm md:text-base uppercase truncate text-[#1A1A1A] group-hover:text-[#FF0080] transition-colors">{aluno.nome_completo?.split(' ')[0] || 'Herói'}</p>
-                          <p className="text-xs md:text-sm font-bold text-[#555] bg-[#70E0BB] inline-block px-2 py-0.5 rounded-lg border-2 border-[#1A1A1A] mt-1 shadow-sm">{aluno.pontuacao || 0} PTS</p>
+                          <p className="font-black text-sm md:text-lg uppercase truncate text-[#1A1A1A] group-hover:text-[#FF0080] transition-colors">{aluno.nome_completo?.split(' ')[0] || 'Herói'}</p>
+                          <p className="text-[10px] md:text-xs font-bold text-[#555] uppercase truncate tracking-wider leading-tight mb-1">
+                            {aluno.escola || 'Escola não informada'}
+                          </p>
+                          <p className="text-[10px] md:text-xs font-bold text-[#1A1A1A] bg-[#70E0BB] inline-block px-2 py-0.5 rounded-md border-2 border-[#1A1A1A] shadow-sm">
+                            {aluno.pontuacao || 0} PTS
+                          </p>
                         </div>
-
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -567,27 +564,39 @@ export default function DashboardFundamental() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               
-              {/* CARD: SAGA DA MATEMÁTICA */}
+              {/* CARD 1: SAGA DA MATEMÁTICA */}
               <div onClick={() => window.location.href = '/game'} className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 hover:shadow-none transition-all cursor-pointer flex flex-col overflow-hidden group">
                 <div className="h-48 md:h-56 bg-[#FFDE03] border-b-4 border-[#1A1A1A] relative flex items-center justify-center overflow-hidden">
-                   {/* Background imitando o mapa */}
                    <div className="absolute inset-0 opacity-20 bg-[url('/mapa-oficial.PNG')] bg-cover bg-bottom mix-blend-multiply transition-transform duration-700 group-hover:scale-110"></div>
-                   
                    <div className="absolute top-4 left-4 bg-[#FF0080] text-white px-3 py-1 rounded-xl text-xs md:text-sm font-black uppercase border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] z-10 animate-pulse">NOVO!</div>
-                   
                    <Gamepad2 size={80} className="text-[#1A1A1A] drop-shadow-md relative z-10 group-hover:rotate-12 transition-transform md:w-[100px] md:h-[100px]" />
                 </div>
                 <div className="p-6 md:p-8 flex flex-col flex-1">
                    <h4 className="text-2xl md:text-3xl font-black uppercase leading-tight text-[#1A1A1A] mb-2 md:mb-3 italic">Saga da Matemática</h4>
                    <p className="font-bold text-[#555] text-sm md:text-base mb-6 md:mb-8 flex-1">Enfrente guardiões, resolva enigmas numéricos e conquiste as 4 ilhas elementais!</p>
-                   
                    <button className="w-full py-4 bg-[#F59E0B] border-4 border-[#1A1A1A] text-[#1A1A1A] rounded-2xl font-black uppercase text-sm md:text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group-hover:bg-[#FFDE03] transition-colors">
                      <PlayCircle size={24} strokeWidth={3} /> Jogar Agora
                    </button>
                 </div>
               </div>
 
-              {/* CARD: EM BREVE */}
+              {/* CARD 2: SAGA DE PORTUGUÊS (COLE ESTE BLOCO AQUI!) */}
+              <div onClick={() => window.location.href = '/game-portugues'} className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 hover:shadow-none transition-all cursor-pointer flex flex-col overflow-hidden group">
+                <div className="h-48 md:h-56 bg-[#70E0BB] border-b-4 border-[#1A1A1A] relative flex items-center justify-center overflow-hidden">
+                   <div className="absolute top-4 left-4 bg-[#FFDE03] text-[#1A1A1A] px-3 py-1 rounded-xl text-xs md:text-sm font-black uppercase border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] z-10 animate-pulse">NOVO!</div>
+                   {/* Coloquei o ícone de Livro para diferenciar! */}
+                   <BookOpen size={80} className="text-[#1A1A1A] drop-shadow-md relative z-10 group-hover:rotate-12 transition-transform md:w-[100px] md:h-[100px]" />
+                </div>
+                <div className="p-6 md:p-8 flex flex-col flex-1">
+                   <h4 className="text-2xl md:text-3xl font-black uppercase leading-tight text-[#1A1A1A] mb-2 md:mb-3 italic">Saga de Português</h4>
+                   <p className="font-bold text-[#555] text-sm md:text-base mb-6 md:mb-8 flex-1">Desbrave o Bosque da Leitura, a Arena da Argumentação e torne-se mestre das palavras!</p>
+                   <button className="w-full py-4 bg-[#A78BFA] border-4 border-[#1A1A1A] text-white rounded-2xl font-black uppercase text-sm md:text-lg flex items-center justify-center gap-2 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group-hover:bg-[#FF0080] transition-colors">
+                     <PlayCircle size={24} strokeWidth={3} /> Jogar Agora
+                   </button>
+                </div>
+              </div>
+
+              {/* CARD 3: EM BREVE */}
               <div className="bg-[#F9F6F0] border-4 border-dashed border-[#1A1A1A] rounded-[30px] md:rounded-[40px] flex flex-col items-center justify-center p-8 opacity-60 h-full min-h-[350px]">
                  <Gamepad2 size={60} className="text-[#1A1A1A] mb-4 opacity-50" />
                  <p className="font-black text-xl text-[#1A1A1A] uppercase text-center italic">Mais jogos<br/>sendo criados...</p>
