@@ -14,11 +14,11 @@ const AVATARES = [
 ]
 
 const MUNDOS = [
-  { id: 1, nome: 'Bosque da Leitura', img: '/mundo-1.png' },
-  { id: 2, nome: 'Reino do Saber', img: '/mundo-2.png' },
-  { id: 3, nome: 'Arena da Argumentação', img: '/mundo-3.png' },
-  { id: 4, nome: 'A Biblioteca dos Sentidos', img: '/mundo-4.png' },
-  { id: 5, nome: 'Topo da Maestria', img: '/mundo-5.png' },
+  { id: 1, nome: 'Bosque da Leitura', img: '/ilha-bosque.png' },
+  { id: 2, nome: 'Reino do Saber', img: '/ilha-reino.png' },
+  { id: 3, nome: 'Arena da Argumentação', img: '/ilha-arena.png' },
+  { id: 4, nome: 'Biblioteca dos Sentidos', img: '/ilha-biblioteca.png' },
+  { id: 5, nome: 'Topo da Maestria', img: '/ilha-topo.png' },
 ]
 
 // ==========================================
