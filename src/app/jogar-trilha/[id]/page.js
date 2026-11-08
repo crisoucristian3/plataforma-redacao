@@ -107,9 +107,20 @@ export default function JogarTrilha() {
     window.location.href = '/enviar-redacao' // Leva para a página de redação que já funciona
   }
 
+  // ==========================================
+  // DEFINIÇÃO DINÂMICA DE CORES POR DISCIPLINA
+  // ==========================================
+  const getTemaEstilo = () => {
+    if (trilha?.disciplina === 'Matemática') return { bg: 'bg-[#3B82F6]', text: 'text-[#3B82F6]', shadow: 'shadow-[4px_4px_0px_0px_#3B82F6]' }
+    if (trilha?.disciplina === 'Inglês') return { bg: 'bg-[#A78BFA]', text: 'text-[#A78BFA]', shadow: 'shadow-[4px_4px_0px_0px_#A78BFA]' }
+    return { bg: 'bg-[#F59E0B]', text: 'text-[#F59E0B]', shadow: 'shadow-[4px_4px_0px_0px_#F59E0B]' } // Linguagens e Padrão
+  }
+  
+  const temaEstilo = getTemaEstilo()
+
   if (loading) return (
     <div className="h-screen bg-[#FDFBF7] flex flex-col items-center justify-center gap-4 p-4">
-      <div className="w-12 h-12 border-4 border-[#F59E0B] border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-12 h-12 border-4 border-[#1A1A1A] border-t-transparent rounded-full animate-spin"></div>
       <p className="text-[#1A1A1A] font-black uppercase italic animate-pulse">Carregando Mapa...</p>
     </div>
   )
@@ -124,13 +135,13 @@ export default function JogarTrilha() {
 
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* CABEÇALHO DO MAPA */}
+        {/* CABEÇALHO DO MAPA DINÂMICO */}
         <header className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] overflow-hidden">
-          <div className="h-32 md:h-48 bg-[#F59E0B] border-b-4 border-[#1A1A1A] relative">
+          <div className={`h-32 md:h-48 ${temaEstilo.bg} border-b-4 border-[#1A1A1A] relative`}>
             {trilha.capa_url ? (
               <img src={trilha.capa_url} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={80} /></div>
+              <div className="w-full h-full flex items-center justify-center opacity-20"></div>
             )}
             {trilhaCompleta && (
               <div className="absolute inset-0 bg-[#70E0BB]/80 flex items-center justify-center backdrop-blur-sm z-10">
@@ -145,8 +156,8 @@ export default function JogarTrilha() {
               <p className="font-bold text-[#555]">{trilha.tema}</p>
             </div>
             
-            <div className="flex flex-col items-center justify-center min-w-[120px] p-4 bg-[#F9F6F0] rounded-2xl border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_#F59E0B]">
-              <span className="font-black uppercase text-[10px] text-[#F59E0B] mb-1">Seus Pontos</span>
+            <div className={`flex flex-col items-center justify-center min-w-[120px] p-4 bg-[#F9F6F0] rounded-2xl border-4 border-[#1A1A1A] ${temaEstilo.shadow}`}>
+              <span className={`font-black uppercase text-[10px] ${temaEstilo.text} mb-1`}>Seus Pontos</span>
               <span className="text-3xl md:text-4xl font-black leading-none">{progresso?.pontos_acumulados || 0}</span>
               <span className="text-xs font-bold opacity-50 uppercase mt-1">DE {trilha.total_pontos}</span>
             </div>
@@ -190,7 +201,7 @@ export default function JogarTrilha() {
       </div>
 
       {/* ========================================================= */}
-      {/* POP-UP DA MISSÃO ATIVA                                      */}
+      {/* POP-UP DA MISSÃO ATIVA                                    */}
       {/* ========================================================= */}
       {missaoAtiva && (
         <div className="fixed inset-0 bg-[#1A1A1A]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95">

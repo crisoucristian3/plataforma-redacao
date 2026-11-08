@@ -143,7 +143,7 @@ export default function MontarTrilha() {
         <header className="border-b-4 border-[#1A1A1A] pb-6 flex items-center justify-between sticky top-0 bg-[#FDFBF7] z-10 pt-4">
           <div>
             <h1 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#F59E0B] flex items-center gap-3">
-              <Map className="w-8 h-8 md:w-12 md:h-12 text-[#1A1A1A]" /> Forjar Trilha
+               Forjar Trilha
             </h1>
             <p className="text-xs md:text-sm font-bold opacity-70 uppercase mt-2">Jornada gamificada dinâmica.</p>
           </div>
@@ -157,13 +157,13 @@ export default function MontarTrilha() {
           
           {/* 1. DADOS GERAIS */}
           <section className="bg-white border-4 border-[#1A1A1A] p-6 md:p-8 rounded-[30px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-            <h2 className="text-xl font-black uppercase italic mb-6 border-b-2 border-[#1A1A1A] pb-2 inline-block">1. Informações do Mapa</h2>
+            <h2 className="text-xl font-black uppercase italic mb-6 border-b-2 border-[#1A1A1A] pb-2 inline-block">Informações do Mapa</h2>
             <div className="space-y-4">
               
               {/* NOVO: SELETOR DE DISCIPLINA */}
               <div className="grid gap-2 mb-4">
                 <label className="font-black uppercase text-xs md:text-sm">Disciplina da Trilha</label>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <label className={`flex-1 p-4 border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl font-black uppercase text-center cursor-pointer transition-all ${disciplina === 'Linguagens' ? 'bg-[#FF0080] text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] translate-y-1' : 'bg-white text-[#1A1A1A] hover:bg-[#F9F6F0]'}`}>
                     <input type="radio" className="hidden" value="Linguagens" checked={disciplina === 'Linguagens'} onChange={(e) => setDisciplina(e.target.value)} />
                     Linguagens
@@ -171,6 +171,10 @@ export default function MontarTrilha() {
                   <label className={`flex-1 p-4 border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl font-black uppercase text-center cursor-pointer transition-all ${disciplina === 'Matemática' ? 'bg-[#3B82F6] text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] translate-y-1' : 'bg-white text-[#1A1A1A] hover:bg-[#F9F6F0]'}`}>
                     <input type="radio" className="hidden" value="Matemática" checked={disciplina === 'Matemática'} onChange={(e) => setDisciplina(e.target.value)} />
                     Matemática
+                  </label>
+                  <label className={`flex-1 p-4 border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl font-black uppercase text-center cursor-pointer transition-all ${disciplina === 'Inglês' ? 'bg-[#A78BFA] text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] translate-y-1' : 'bg-white text-[#1A1A1A] hover:bg-[#F9F6F0]'}`}>
+                    <input type="radio" className="hidden" value="Inglês" checked={disciplina === 'Inglês'} onChange={(e) => setDisciplina(e.target.value)} />
+                    Inglês
                   </label>
                 </div>
               </div>
@@ -252,6 +256,8 @@ export default function MontarTrilha() {
                     <label className="font-black uppercase text-[10px] text-[#FF0080]">Resposta Correta (Gabarito)</label>
                     <select className="w-full bg-white border-2 border-[#1A1A1A] rounded-xl p-2 mt-1 text-sm font-bold outline-none" value={q.correta} onChange={e => atualizarQuiz(q.id, 'correta', e.target.value)}>
                       <option value="">Selecione...</option>
+                      <option value="verdadeiro">Verdadeiro</option>
+                      <option value="falso">Falso</option>
                       {q.opcoes.map((op, idx) => op && <option key={idx} value={op}>{op}</option>)}
                     </select>
                   </div>

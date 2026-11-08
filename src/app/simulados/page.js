@@ -7,7 +7,7 @@ export default function SimuladosEnem() {
   const [loading, setLoading] = useState(true)
   const [indiceAtual, setIndiceAtual] = useState(0)
   
-  const [opcaoSelecionada, setOpcaoSelecionada] = useState(null) // Guarda a letra: 'A', 'B', 'C', 'D' ou 'E'
+  const [opcaoSelecionada, setOpcaoSelecionada] = useState(null) 
   const [respondido, setRespondido] = useState(false)
   const [acertos, setAcertos] = useState(0)
   const [finalizado, setFinalizado] = useState(false)
@@ -24,13 +24,32 @@ export default function SimuladosEnem() {
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     
     try {
-      const { data, error } = await supabase.from('questoes_enem').select('*')
+      // 1. Descobre quem é o aluno logado e qual o nível dele
+      const { data: { user } } = await supabase.auth.getUser()
+      let focoAluno = 'fundamental' // Padrao caso dê erro
+
+      if (user) {
+        const { data: perfilData } = await supabase.from('perfis').select('foco_ensino').eq('id', user.id).single()
+        if (perfilData && perfilData.foco_ensino) {
+          focoAluno = perfilData.foco_ensino // Retorna 'fundamental' ou 'enem'
+        }
+      }
+
+      // 2. Busca no banco SOMENTE as questões que pertencem ao nível desse aluno
+      const { data, error } = await supabase
+        .from('questoes_enem')
+        .select('*')
+        .eq('foco_ensino', focoAluno) // O FILTRO ESTÁ AQUI
       
       if (error) throw error
       
-      // Embaralha as questões para o simulado não ficar repetitivo
+      // 3. Embaralha
       const questoesEmbaralhadas = (data || []).sort(() => Math.random() - 0.5)
-      setQuestoes(questoesEmbaralhadas)
+      
+      // 4. Limita a 30 questões se for Ensino Fundamental
+      const qtdeLimite = focoAluno === 'fundamental' ? 30 : questoesEmbaralhadas.length
+      setQuestoes(questoesEmbaralhadas.slice(0, qtdeLimite))
+      
     } catch (err) {
       console.error("Erro ao buscar questões:", err)
     } finally {
@@ -49,7 +68,7 @@ export default function SimuladosEnem() {
     }
   }
 
-  const proximaQuestao = () => {
+  const proximaQuestao = async () => {
     if (indiceAtual + 1 < questoes.length) {
       setIndiceAtual(prev => prev + 1)
       setOpcaoSelecionada(null)
@@ -58,6 +77,17 @@ export default function SimuladosEnem() {
     } else {
       setFinalizado(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      
+      // Quando finalizar, dá 10 Pontos de Gamificação por Acerto pro Aluno (Seja Médio ou Fundamental)
+      const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+         try {
+           const { data: perfAtual } = await supabase.from('perfis').select('pontuacao').eq('id', user.id).single()
+           const novosPontos = (perfAtual?.pontuacao || 0) + (acertos * 10) 
+           await supabase.from('perfis').update({ pontuacao: novosPontos }).eq('id', user.id)
+         } catch (e) {}
+      }
     }
   }
 
@@ -78,8 +108,8 @@ export default function SimuladosEnem() {
         <div className="bg-white border-4 border-[#1A1A1A] p-8 md:p-12 rounded-[40px] text-center max-w-xl shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
           <FileQuestion size={80} className="mx-auto text-[#FF0080] mb-6" strokeWidth={1.5} />
           <h2 className="text-3xl font-black uppercase text-[#1A1A1A] mb-4">Sem Simulados</h2>
-          <p className="font-bold text-[#555] mb-8 text-lg">Os professores ainda não enviaram questões para treinar. Tente novamente mais tarde!</p>
-          <button onClick={() => window.location.href = '/painel-fundamental'} className="w-full py-4 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FFDE03] transition-colors shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">Voltar ao Painel</button>
+          <p className="font-bold text-[#555] mb-8 text-lg">Os professores ainda não enviaram as provas para o seu nível. Tente de novo amanhã!</p>
+          <button onClick={() => window.history.back()} className="w-full py-4 bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-2xl font-black uppercase text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FFDE03] transition-colors shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]">Voltar</button>
         </div>
       </div>
     )
@@ -95,7 +125,7 @@ export default function SimuladosEnem() {
             <Trophy size={60} className="text-[#1A1A1A]" />
           </div>
           <h1 className="text-4xl md:text-6xl font-black uppercase italic text-[#1A1A1A] mb-2 tracking-tighter">Simulado Concluído!</h1>
-          <p className="font-bold text-[#555] text-lg md:text-xl mb-10">Você finalizou a bateria de questões.</p>
+          <p className="font-bold text-[#555] text-lg md:text-xl mb-10">Você finalizou a bateria de questões e seus pontos foram salvos.</p>
           
           <div className="bg-[#F9F6F0] border-4 border-[#1A1A1A] rounded-3xl p-8 mb-10 flex flex-col sm:flex-row items-center justify-around gap-6 shadow-inner">
             <div className="text-center w-full sm:w-auto border-b-4 sm:border-b-0 sm:border-r-4 border-[#1A1A1A]/10 pb-6 sm:pb-0 sm:pr-8">
@@ -108,7 +138,7 @@ export default function SimuladosEnem() {
             </div>
           </div>
 
-          <button onClick={() => window.location.href = '/painel-fundamental'} className="w-full py-5 bg-[#3B82F6] border-4 border-[#1A1A1A] rounded-2xl font-black text-xl uppercase text-white hover:bg-[#1A1A1A] hover:-translate-y-1 transition-all shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+          <button onClick={() => window.history.back()} className="w-full py-5 bg-[#3B82F6] border-4 border-[#1A1A1A] rounded-2xl font-black text-xl uppercase text-white hover:bg-[#1A1A1A] hover:-translate-y-1 transition-all shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
             Voltar ao Dashboard
           </button>
         </div>
@@ -117,28 +147,26 @@ export default function SimuladosEnem() {
   }
 
   // ==============================================================
-  // TELA DE RESOLUÇÃO (ENEM STYLE)
+  // TELA DE RESOLUÇÃO
   // ==============================================================
   const questaoAtual = questoes[indiceAtual]
   
-  // Como o professor salva as alternativas num objeto JSON (Ex: { A: 'texto', B: 'texto' })
-  // Nós lemos as chaves desse objeto
   const alternativas = questaoAtual.alternativas ? ['A', 'B', 'C', 'D', 'E'].map(letra => ({
     letra: letra,
     texto: questaoAtual.alternativas[letra]
-  })).filter(opt => opt.texto) : [] // Remove caso não tenha texto (ex: se fez só até a D)
+  })).filter(opt => opt.texto) : [] 
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans text-[#1A1A1A]">
       
       {/* HEADER FIXO */}
       <header className="bg-white p-4 md:p-6 flex items-center justify-between sticky top-0 z-40 border-b-4 border-[#1A1A1A] shadow-sm">
-        <button onClick={() => window.location.href = '/painel-fundamental'} className="p-3 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center gap-2 hover:bg-[#1A1A1A] hover:text-white transition-colors">
+        <button onClick={() => window.history.back()} className="p-3 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl font-black uppercase text-xs md:text-sm flex items-center gap-2 hover:bg-[#1A1A1A] hover:text-white transition-colors">
           <ArrowLeft size={18} strokeWidth={3} /> <span className="hidden sm:block">Sair do Simulado</span>
         </button>
         
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="hidden sm:flex bg-[#FF0080] border-2 border-[#1A1A1A] px-4 py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] items-center gap-2">
+          <div className={`hidden sm:flex border-2 border-[#1A1A1A] px-4 py-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] items-center gap-2 ${questaoAtual.foco_ensino === 'fundamental' ? 'bg-[#70E0BB]' : 'bg-[#FF0080]'}`}>
             <GraduationCap size={20} className="text-white" />
             <span className="font-black uppercase text-sm text-white tracking-widest">{questaoAtual.caderno || 'Simulado'}</span>
           </div>
@@ -160,12 +188,12 @@ export default function SimuladosEnem() {
                 {indiceAtual + 1}
               </div>
               <h2 className="text-xl md:text-2xl font-black text-[#1A1A1A] uppercase tracking-tight line-clamp-2">
-                {questaoAtual.titulo || 'Questão do Enem'}
+                {questaoAtual.titulo || 'Questão'}
               </h2>
             </div>
           </div>
 
-          {/* RENDERIZAÇÃO DE MÚLTIPLAS IMAGENS (Se o professor enviou anexos) */}
+          {/* RENDERIZAÇÃO DE MÚLTIPLAS IMAGENS */}
           {questaoAtual.imagens_urls && questaoAtual.imagens_urls.length > 0 && (
             <div className="mb-8 space-y-4">
               {questaoAtual.imagens_urls.map((imgUrl, idx) => (
@@ -192,7 +220,6 @@ export default function SimuladosEnem() {
             const isCorreta = respondido && opt.letra === questaoAtual.resposta_correta;
             const isErro = respondido && isSelecionada && opt.letra !== questaoAtual.resposta_correta;
 
-            // Cores e estilos adaptativos
             let containerClass = "bg-white border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#F9F6F0] hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-1";
             let circleClass = "bg-[#F9F6F0] text-[#1A1A1A]";
 

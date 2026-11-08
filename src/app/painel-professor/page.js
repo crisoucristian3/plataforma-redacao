@@ -15,7 +15,7 @@ export default function PainelProfessor() {
   const [aulas, setAulas] = useState([]) 
   const [temas, setTemas] = useState([]) 
   const [desafios, setDesafios] = useState([])
-  const [atividades, setAtividades] = useState([]) 
+  const [livros, setLivros] = useState([]) // MUDANÇA: 'atividades' para 'livros'
   const [questoes, setQuestoes] = useState([])
   const [trilhas, setTrilhas] = useState([]) 
   const [loading, setLoading] = useState(true)
@@ -29,7 +29,7 @@ export default function PainelProfessor() {
   const [alunosProgresso, setAlunosProgresso] = useState([])
   
   const [filtroAlunoAtual, setFiltroAlunoAtual] = useState('Todos')
-  const [filtroCaderno, setFiltroCaderno] = useState('Todos')
+  const [filtroNivelQuestao, setFiltroNivelQuestao] = useState('Todos') 
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -78,8 +78,11 @@ export default function PainelProfessor() {
       const { data: listaDesafios } = await supabase.from('desafios_kids').select('*').order('created_at', { ascending: false })
       setDesafios(listaDesafios || [])
 
-      const { data: listaAtividades } = await supabase.from('atividades_auxiliares').select('*').order('created_at', { ascending: false })
-      setAtividades(listaAtividades || [])
+      // MUDANÇA: Buscando da tabela de livros em vez da antiga atividades_auxiliares
+      try {
+        const { data: listaLivros } = await supabase.from('livros_kids').select('*').order('created_at', { ascending: false })
+        setLivros(listaLivros || [])
+      } catch (err) { console.log('Tabela livros_kids ainda não criada') }
 
       const { data: listaQuestoes } = await supabase.from('questoes_enem').select('*').order('created_at', { ascending: false })
       setQuestoes(listaQuestoes || [])
@@ -91,14 +94,10 @@ export default function PainelProfessor() {
     setLoading(false)
   }
 
-  // =========================================================
-  // FUNÇÃO CORRIGIDA: BUSCA EM DUAS ETAPAS PARA EVITAR ERRO DE JOIN
-  // =========================================================
   async function abrirDesempenho(trilha) {
     setDesempenhoTrilha(trilha);
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
-    // 1. Busca primeiro só os progressos
     const { data: progressos } = await supabase
       .from('progresso_trilhas')
       .select('*')
@@ -106,16 +105,13 @@ export default function PainelProfessor() {
       .order('pontos_acumulados', { ascending: false });
       
     if (progressos && progressos.length > 0) {
-      // 2. Extrai os IDs dos alunos
       const alunoIds = progressos.map(p => p.aluno_id);
       
-      // 3. Busca os perfis (nome e foto) desses alunos
       const { data: perfisData } = await supabase
         .from('perfis')
         .select('id, nome_completo, foto_url')
         .in('id', alunoIds);
         
-      // 4. Junta tudo em um único objeto para a tela renderizar
       const progressosComPerfil = progressos.map(prog => ({
         ...prog,
         perfis: perfisData?.find(perfil => perfil.id === prog.aluno_id) || { nome_completo: 'Aluno', foto_url: null }
@@ -126,7 +122,6 @@ export default function PainelProfessor() {
       setAlunosProgresso([]);
     }
   }
-  // =========================================================
 
   const normalizarNome = (txt) => txt?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || "";
   
@@ -148,7 +143,11 @@ export default function PainelProfessor() {
     return aluno.escola_agrupada === filtroAlunoAtual;
   });
 
-  const questoesFiltradas = questoes.filter(q => filtroCaderno === 'Todos' || q.caderno === filtroCaderno);
+  const questoesFiltradas = questoes.filter(q => {
+    if (filtroNivelQuestao === 'Todos') return true;
+    const focoQuestao = q.foco_ensino || 'enem'; 
+    return focoQuestao === filtroNivelQuestao;
+  });
 
   async function excluirAula(id, event) {
     event.stopPropagation();
@@ -172,15 +171,15 @@ export default function PainelProfessor() {
     setDesafios(desafios.filter(d => d.id !== id));
   }
 
-  async function excluirAtividade(id) {
-    if(!confirm("Excluir esta atividade extra?")) return;
+  async function excluirLivro(id) {
+    if(!confirm("Excluir este livro?")) return;
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    await supabase.from('atividades_auxiliares').delete().eq('id', id);
-    setAtividades(atividades.filter(a => a.id !== id));
+    await supabase.from('livros_kids').delete().eq('id', id);
+    setLivros(livros.filter(l => l.id !== id));
   }
 
   async function excluirQuestao(id) {
-    if(!confirm("Tem certeza que deseja excluir esta questão do ENEM?")) return;
+    if(!confirm("Tem certeza que deseja excluir esta questão do Simulado?")) return;
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     await supabase.from('questoes_enem').delete().eq('id', id);
     setQuestoes(questoes.filter(q => q.id !== id));
@@ -256,7 +255,7 @@ export default function PainelProfessor() {
               </div>
 
               <div className="bg-[#F59E0B] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
-                <div><Map size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Trilhas Kids</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Missões e Mini-games.</p></div>
+                <div><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Trilhas Kids</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Missões e Mini-games.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
                   <button onClick={() => setAbaAtiva('ver-trilhas')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({trilhas.length})</button>
                   <button onClick={() => window.location.href = '/enviar-trilha'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-[#F59E0B] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors hover:bg-white hover:text-[#1A1A1A]"><PlusCircle size={14}/> Montar Trilha</button>
@@ -264,7 +263,7 @@ export default function PainelProfessor() {
               </div>
 
               <div className="bg-[#FFDE03] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between">
-                <div><FileText size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Temas</h3><p className="font-bold text-sm md:text-base opacity-80">Propostas ENEM.</p></div>
+                <div><FileText size={32} className="mb-3 md:mb-4 md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2">Temas</h3><p className="font-bold text-sm md:text-base opacity-80">Propostas de Redação.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
                   <button onClick={() => setAbaAtiva('ver-temas')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs">Catálogo ({temas.length})</button>
                   <button onClick={() => window.location.href = '/dashboard/enviar-tema'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-[#FFDE03] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2"><PlusCircle size={14}/> Novo Tema</button>
@@ -287,21 +286,25 @@ export default function PainelProfessor() {
                 </div>
               </div>
 
-              <div className="bg-[#4ADE80] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between cursor-pointer group" onClick={() => window.location.href = '/enviar-atividade'}>
+              {/* MUDANÇA: O CARD VERDE AGORA É PARA LIVROS KIDS */}
+              <div className="bg-[#4ADE80] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
                 <div>
-                  <Paperclip size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" />
-                  <h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Atividades</h3>
-                  <p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Extras em PDF.</p>
+                  <BookOpen size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" />
+                  <h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Livros Kids</h3>
+                  <p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Biblioteca de Aventuras.</p>
                 </div>
-                <div className="mt-4 md:mt-6">
-                  <button className="w-full py-2 md:py-3 bg-white text-[#1A1A1A] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
-                    <PlusCircle size={14} className="md:w-4 md:h-4" /> Lançar Atividade
+                <div className="flex flex-col gap-2 mt-4 md:mt-6">
+                  <button onClick={() => setAbaAtiva('ver-livros')} className="w-full py-2 md:py-3 bg-white text-[#1A1A1A] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none transition-all">
+                    Catálogo ({livros.length})
+                  </button>
+                  <button onClick={() => window.location.href = '/enviar-livro'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-[#4ADE80] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none transition-all">
+                    <PlusCircle size={14} className="md:w-4 md:h-4" /> Novo Livro
                   </button>
                 </div>
               </div>
 
               <div className="bg-sky-400 border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between group">
-                <div><HelpCircle size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Banco ENEM</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Simulados Ensino Médio.</p></div>
+                <div><HelpCircle size={32} className="mb-3 md:mb-4 text-[#1A1A1A] md:w-10 md:h-10" /><h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#1A1A1A]">Simulados</h3><p className="font-bold text-sm md:text-base opacity-80 text-[#1A1A1A] leading-tight">Fundamental e Médio.</p></div>
                 <div className="flex flex-col gap-2 mt-4">
                   <button onClick={() => setAbaAtiva('ver-questoes')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({questoes.length})</button>
                   <button onClick={() => window.location.href = '/enviar-questao'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors"><PlusCircle size={14}/> Nova Questão</button>
@@ -328,7 +331,6 @@ export default function PainelProfessor() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {trilhas.length === 0 ? (
                 <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
-                  <Map size={60} className="mx-auto mb-4 text-slate-300" />
                   <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhuma trilha criada ainda.</p>
                 </div>
               ) : (
@@ -348,7 +350,7 @@ export default function PainelProfessor() {
                       {trilha.capa_url ? (
                         <img src={trilha.capa_url} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center opacity-20"><Map size={60} /></div>
+                        <div className="w-full h-full flex items-center justify-center opacity-20"></div>
                       )}
                       <span className="absolute bottom-2 left-2 bg-[#1A1A1A] text-white px-2 py-1 rounded-md text-[10px] font-black uppercase">TRILHA {idx + 1}</span>
                     </div>
@@ -362,6 +364,58 @@ export default function PainelProfessor() {
                       <button onClick={() => abrirDesempenho(trilha)} className="w-full py-3 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-[#F59E0B] hover:text-white transition-colors">
                         <Users size={16} /> Ver Desempenho
                       </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* NOVA ABA: VER LIVROS KIDS */}
+        {abaAtiva === 'ver-livros' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#4ADE80] inline-block">Livros Publicados</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {livros.length === 0 ? (
+                <div className="col-span-full bg-white border-4 border-[#1A1A1A] p-10 rounded-[30px] text-center shadow-[6px_6px_0px_0px_rgba(26,26,26,1)]">
+                  <BookOpen size={60} className="mx-auto mb-4 text-slate-300" />
+                  <p className="font-black text-xl italic text-[#1A1A1A] uppercase">Nenhum livro criado ainda.</p>
+                </div>
+              ) : (
+                livros.map((livro) => (
+                  <div key={livro.id} className="relative bg-white border-4 border-[#1A1A1A] rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] overflow-hidden flex flex-col">
+                    
+                    <div className="absolute top-3 right-3 z-10 flex gap-2">
+                      <button onClick={() => window.location.href = `/editar-livro/${livro.id}`} title="Editar Livro" className="p-2 bg-white border-2 border-[#1A1A1A] rounded-xl text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Pencil size={16} strokeWidth={3} />
+                      </button>
+                      <button onClick={() => excluirLivro(livro.id)} title="Excluir Livro" className="p-2 bg-white border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Trash2 size={16} strokeWidth={3} />
+                      </button>
+                    </div>
+
+                    <div className="h-48 bg-[#4ADE80] border-b-4 border-[#1A1A1A] relative">
+                      {livro.capa_url ? (
+                        <img src={livro.capa_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center opacity-20"><BookOpen size={60} /></div>
+                      )}
+                      <span className="absolute bottom-2 left-2 bg-[#1A1A1A] text-white px-2 py-1 rounded-md text-[10px] font-black uppercase">
+                        {livro.paginas?.length || 0} PÁGINAS
+                      </span>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-black uppercase leading-tight mb-2 text-[#1A1A1A]">{livro.titulo}</h3>
+                        <p className="text-xs font-bold text-[#555] line-clamp-2 mb-4">{livro.tema}</p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-auto">
+                         <span className="text-[#FF0080] font-black uppercase text-sm flex items-center gap-1"><Star size={14}/> {livro.pontos} PTS</span>
+                         <span className="text-[10px] font-bold uppercase text-[#555] opacity-50">{new Date(livro.created_at).toLocaleDateString('pt-BR')}</span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -432,37 +486,6 @@ export default function PainelProfessor() {
           </div>
         )}
 
-        {abaAtiva === 'ver-aulas' && (
-          <div className="max-w-6xl mx-auto animate-in slide-in-from-bottom-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#A78BFA] inline-block">Catálogo de Aulas</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
-              {aulas.map((aula, idx) => (
-                <div key={aula.id} className={`group relative border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] overflow-hidden hover:-translate-y-2 transition-all cursor-pointer shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] ${idx % 3 === 0 ? 'bg-[#FF0080]' : idx % 3 === 1 ? 'bg-[#70E0BB]' : 'bg-[#FFDE03]'}`} onClick={() => window.location.href = `/dashboard/aula/${aula.id}`}>
-                  <button onClick={(e) => excluirAula(aula.id, e)} className="absolute top-2 right-2 md:top-4 md:right-4 z-20 p-2 bg-white border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all"><Trash2 size={16} className="md:w-5 md:h-5" strokeWidth={3} /></button>
-                  <div className="aspect-square relative border-b-4 border-[#1A1A1A] bg-white overflow-hidden">{aula.capa_final ? <img src={aula.capa_final} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><BookOpen size={60} className="opacity-20 md:w-20 md:h-20"/></div>}</div>
-                  <div className="p-4 md:p-6"><h4 className="text-lg md:text-2xl font-black text-white uppercase leading-tight line-clamp-2">{aula.titulo}</h4></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {abaAtiva === 'ver-temas' && (
-          <div className="max-w-6xl mx-auto animate-in slide-in-from-left-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FFDE03] inline-block">Temas Publicados</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {temas.map((tema) => (
-                <div key={tema.id} className="relative bg-white border-4 border-[#1A1A1A] p-5 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-1 transition-all flex flex-col justify-between">
-                  <button onClick={() => excluirTema(tema.id)} className="absolute top-3 right-3 md:top-4 md:right-4 p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all"><Trash2 size={16} className="md:w-5 md:h-5" strokeWidth={3} /></button>
-                  <h3 className="text-lg md:text-xl font-black uppercase leading-tight mb-2 text-[#FF0080] pr-10 md:pr-12">{tema.titulo}</h3>
-                  <p className="text-xs md:text-sm font-medium italic line-clamp-3 mb-4 text-[#555]">{tema.descricao}</p>
-                  {tema.arquivo_apoio_url && (<a href={tema.arquivo_apoio_url} target="_blank" className="inline-flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:py-3 bg-[#FFDE03] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] md:text-xs shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"><FileText size={14} className="md:w-4 md:h-4" /> Ver Material</a>)}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {abaAtiva === 'ver-desafios' && (
           <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
             <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#70E0BB] inline-block">Desafios Kids</h2>
@@ -481,44 +504,58 @@ export default function PainelProfessor() {
 
         {abaAtiva === 'ver-questoes' && (
           <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-10 border-b-4 md:border-b-8 border-sky-400 inline-block">Catálogo ENEM</h2>
+            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter mb-6 md:mb-10 border-b-4 md:border-b-8 border-sky-400 inline-block">Catálogo de Simulados</h2>
             
             <div className="flex flex-wrap gap-2 mb-8 bg-white border-2 md:border-4 border-[#1A1A1A] p-2 rounded-xl shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
-              {['Todos', 'linguagens', 'humanas', 'natureza', 'matematica'].map(cad => (
+              {['Todos', 'fundamental', 'enem'].map(nivel => (
                 <button 
-                  key={cad} 
-                  onClick={() => setFiltroCaderno(cad)} 
-                  className={`px-3 py-2 font-black uppercase italic text-[10px] md:text-xs rounded-lg border-2 ${
-                    filtroCaderno === cad ? 'bg-sky-400 text-[#1A1A1A] border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]' : 'bg-transparent text-[#555] border-transparent hover:bg-[#F9F6F0]'
+                  key={nivel} 
+                  onClick={() => setFiltroNivelQuestao(nivel)} 
+                  className={`px-4 py-2 font-black uppercase italic text-xs md:text-sm rounded-lg border-2 ${
+                    filtroNivelQuestao === nivel ? 'bg-[#FF0080] text-white border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]' : 'bg-transparent text-[#555] border-transparent hover:bg-[#F9F6F0]'
                   }`}
                 >
-                  {cad}
+                  {nivel === 'enem' ? 'Ensino Médio' : nivel}
                 </button>
               ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-              {questoesFiltradas.map((q) => (
-                <div key={q.id} className="relative bg-white border-4 border-[#1A1A1A] p-5 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between">
-                  <button onClick={() => excluirQuestao(q.id)} className="absolute top-3 right-3 md:top-4 md:right-4 p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all z-10">
-                    <Trash2 size={16} className="md:w-5 md:h-5" strokeWidth={3} />
-                  </button>
-                  
-                  <div>
-                    <div className="flex items-center gap-2 mb-2 pr-10">
-                      <span className="px-2 py-1 bg-[#1A1A1A] text-sky-400 rounded-md text-[9px] font-black uppercase tracking-widest">{q.caderno}</span>
-                      <h3 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] truncate">{q.titulo}</h3>
-                    </div>
-                    <p className="text-xs md:text-sm font-medium italic line-clamp-3 mb-4 text-[#555]">{q.enunciado}</p>
+              {questoesFiltradas.length === 0 ? (
+                <p className="font-bold text-gray-500 italic p-4">Nenhuma questão encontrada para este nível.</p>
+              ) : (
+                questoesFiltradas.map((q) => (
+                  <div key={q.id} className="relative bg-white border-4 border-[#1A1A1A] p-5 md:p-6 rounded-[20px] md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col justify-between">
                     
-                    <div className="bg-[#F9F6F0] p-3 rounded-xl border-2 border-dashed border-[#1A1A1A]/20 mb-4">
-                      <p className="text-[10px] font-black uppercase text-[#FF0080]">Gabarito Oficial: {q.resposta_correta}</p>
-                      <p className="text-xs font-bold text-[#1A1A1A] truncate mt-1">{q.alternativas?.[q.resposta_correta]}</p>
+                    <div className="absolute top-3 right-3 md:top-4 md:right-4 flex gap-2 z-10">
+                      <button onClick={() => window.location.href = `/editar-questao/${q.id}`} title="Editar Questão" className="p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl text-[#3B82F6] hover:bg-[#3B82F6] hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Pencil size={16} className="md:w-5 md:h-5" strokeWidth={3} />
+                      </button>
+                      <button onClick={() => excluirQuestao(q.id)} title="Excluir Questão" className="p-2 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl text-red-500 hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all">
+                        <Trash2 size={16} className="md:w-5 md:h-5" strokeWidth={3} />
+                      </button>
                     </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-2 mb-2 pr-24">
+                        <span className={`px-2 py-1 bg-[#1A1A1A] rounded-md text-[9px] font-black uppercase tracking-widest ${(q.foco_ensino || 'enem') === 'fundamental' ? 'text-[#70E0BB]' : 'text-sky-400'}`}>
+                          {q.foco_ensino || 'enem'}
+                        </span>
+                        <h3 className="text-lg md:text-xl font-black uppercase leading-tight text-[#1A1A1A] truncate">{q.titulo || q.disciplina || 'Questão'}</h3>
+                      </div>
+                      <p className="text-xs md:text-sm font-medium italic line-clamp-3 mb-4 text-[#555]">{q.enunciado || q.pergunta}</p>
+                      
+                      <div className="bg-[#F9F6F0] p-3 rounded-xl border-2 border-dashed border-[#1A1A1A]/20 mb-4">
+                        <p className="text-[10px] font-black uppercase text-[#FF0080]">Gabarito Oficial: {q.resposta_correta}</p>
+                        <p className="text-xs font-bold text-[#1A1A1A] truncate mt-1">
+                          {q.alternativas?.[q.resposta_correta] || q.resposta_correta}
+                        </p>
+                      </div>
+                    </div>
+                    
                   </div>
-                  
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -548,7 +585,6 @@ export default function PainelProfessor() {
         </div>
       )}
 
-      {/* NOVO MODAL: DESEMPENHO DA TRILHA */}
       {desempenhoTrilha && (
         <div className="fixed inset-0 bg-[#1A1A1A]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in zoom-in-95">
           <div className="bg-white border-4 border-[#1A1A1A] w-full max-w-2xl rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] p-5 md:p-10 relative flex flex-col max-h-[90vh]">
@@ -583,11 +619,5 @@ export default function PainelProfessor() {
       )}
 
     </div>
-  )
-}
-
-function NavItem({ icon, label, active, onClick, color }) {
-  return (
-    <button onClick={onClick} className={`flex items-center gap-3 md:gap-4 px-4 py-3 md:px-6 md:py-4 rounded-2xl md:rounded-3xl font-black uppercase italic text-base md:text-xl border-2 md:border-4 transition-all ${active ? `bg-[${color}] border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] md:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] -translate-y-1` : 'border-transparent text-[#555] hover:bg-white hover:border-[#1A1A1A]'}`} style={active ? {backgroundColor: color} : {}}>{icon} <span>{label}</span></button>
   )
 }
