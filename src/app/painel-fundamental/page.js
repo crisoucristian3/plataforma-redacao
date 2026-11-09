@@ -379,20 +379,20 @@ export default function DashboardFundamental() {
               </div>
 
                {/* O Conteúdo da Página */}
-<div className="flex-1 flex flex-col items-center justify-center gap-6 animate-in slide-in-from-right-4">
-  {livroAtivo.paginas[paginaAtual]?.imagem_url && (
-    <img 
-      src={livroAtivo.paginas[paginaAtual].imagem_url} 
-      className="max-h-[350px] w-auto object-contain rounded-2xl border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]" 
-      alt={`Ilustração da página ${paginaAtual + 1}`} 
-    />
-  )}
-  {livroAtivo.paginas[paginaAtual]?.texto && (
-    <p className="text-lg md:text-2xl font-medium leading-loose md:leading-loose whitespace-pre-wrap text-[#1A1A1A] font-serif text-center w-full">
-      {livroAtivo.paginas[paginaAtual].texto}
-    </p>
-  )}
-</div>
+              <div className="flex-1 flex flex-col items-center justify-start gap-6 animate-in slide-in-from-right-4 w-full">
+                {livroAtivo.paginas[paginaAtual]?.imagem_url && (
+                  <img 
+                    src={livroAtivo.paginas[paginaAtual].imagem_url} 
+                    className="w-full h-auto object-contain rounded-2xl border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] bg-[#F9F6F0]" 
+                    alt={`Página ${paginaAtual + 1}`} 
+                  />
+                )}
+                {livroAtivo.paginas[paginaAtual]?.texto && (
+                  <p className="text-lg md:text-2xl font-medium leading-loose md:leading-loose whitespace-pre-wrap text-[#1A1A1A] font-serif text-center w-full mt-4">
+                    {livroAtivo.paginas[paginaAtual].texto}
+                  </p>
+                )}
+              </div>
 
               <div className="flex items-center justify-between mt-10 pt-6 border-t-4 border-[#1A1A1A] gap-4">
                 <button 
