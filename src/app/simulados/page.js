@@ -177,7 +177,7 @@ export default function SimuladosEnem() {
       </header>
 
       {/* ÁREA DE LEITURA (PROVA DIGITAL) */}
-      <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 pb-40">
+      <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8 pb-64 lg:pb-72">
         
         {/* BLOCO DA PERGUNTA E IMAGENS */}
         <div className="mb-10 bg-white border-4 border-[#1A1A1A] rounded-[30px] p-6 md:p-10 shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
@@ -212,7 +212,7 @@ export default function SimuladosEnem() {
         </div>
 
         {/* BLOCO DAS ALTERNATIVAS */}
-        <div className="space-y-4 md:space-y-5">
+        <div className="space-y-4 md:space-y-5 mb-24">
           <h3 className="font-black uppercase italic text-sm md:text-base text-gray-500 ml-2 mb-4">Escolha uma alternativa:</h3>
           
           {alternativas.map((opt) => {

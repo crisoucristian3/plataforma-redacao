@@ -2,18 +2,18 @@
 import { useState, useEffect } from 'react'
 import { 
   ArrowLeft, Send, Image as ImageIcon, Plus, 
-  Trash2, Star, BookOpen, Layers, Type
+  Trash2, Star, BookOpen, Layers, Type, UploadCloud
 } from 'lucide-react'
 
 export default function EnviarLivro() {
   const [loading, setLoading] = useState(false)
   const [titulo, setTitulo] = useState('')
   const [tema, setTema] = useState('')
-  const [pontos, setPontos] = useState(50) // Pontuação padrão
+  const [pontos, setPontos] = useState(50) 
   const [capa, setCapa] = useState(null)
   
-  // O livro começa com 1 página vazia
-  const [paginas, setPaginas] = useState([''])
+  // Agora as páginas guardam texto E imagem!
+  const [paginas, setPaginas] = useState([{ texto: '', imagem: null }])
 
   useEffect(() => {
     if (!window.supabase) {
@@ -25,7 +25,7 @@ export default function EnviarLivro() {
   }, [])
 
   const adicionarPagina = () => {
-    setPaginas([...paginas, ''])
+    setPaginas([...paginas, { texto: '', imagem: null }])
   }
 
   const removerPagina = (index) => {
@@ -36,9 +36,15 @@ export default function EnviarLivro() {
     }
   }
 
-  const atualizarPagina = (index, valor) => {
+  const atualizarTextoPagina = (index, valor) => {
     const novasPaginas = [...paginas]
-    novasPaginas[index] = valor
+    novasPaginas[index].texto = valor
+    setPaginas(novasPaginas)
+  }
+  
+  const atualizarImagemPagina = (index, arquivo) => {
+    const novasPaginas = [...paginas]
+    novasPaginas[index].imagem = arquivo
     setPaginas(novasPaginas)
   }
 
@@ -52,9 +58,9 @@ export default function EnviarLivro() {
   async function handleSubmit(e) {
     e.preventDefault()
     
-    // Validação de páginas vazias
-    const paginasVazias = paginas.some(p => p.trim() === '')
-    if (paginasVazias) return alert("Preencha o texto de todas as páginas ou apague as que estiverem vazias!")
+    // Validação: Pelo menos um texto ou uma imagem em cada página
+    const paginaInvalida = paginas.some(p => p.texto.trim() === '' && p.imagem === null)
+    if (paginaInvalida) return alert("Alguma página está totalmente em branco. Coloque um texto ou uma imagem, ou apague a página!")
     if (!capa) return alert("Por favor, adicione uma capa bem bonita para o livro!")
 
     setLoading(true)
@@ -69,26 +75,45 @@ export default function EnviarLivro() {
 
       // 1. Fazer upload da Capa
       let capaUrl = null
-      const nomeFinal = `livros/${user.id}/${sanitizarNomeArquivo(capa.name)}`
-      const { error: uploadError } = await supabase.storage.from('redacoes_arquivos').upload(nomeFinal, capa)
-      
+      const nomeFinalCapa = `livros/${user.id}/capa-${sanitizarNomeArquivo(capa.name)}`
+      const { error: uploadError } = await supabase.storage.from('redacoes_arquivos').upload(nomeFinalCapa, capa)
       if (uploadError) throw uploadError
-      const { data: { publicUrl } } = supabase.storage.from('redacoes_arquivos').getPublicUrl(nomeFinal)
-      capaUrl = publicUrl
+      const { data: { publicUrl: urlPublicaCapa } } = supabase.storage.from('redacoes_arquivos').getPublicUrl(nomeFinalCapa)
+      capaUrl = urlPublicaCapa
 
-      // 2. Salvar no Banco
+      // 2. Fazer upload das imagens de cada página (se houver) e montar o objeto final
+      const paginasFinais = []
+      for (let i = 0; i < paginas.length; i++) {
+        let imagemPaginaUrl = null
+        
+        if (paginas[i].imagem) {
+          const nomeFinalImg = `livros/${user.id}/pag-${i}-${sanitizarNomeArquivo(paginas[i].imagem.name)}`
+          const { error: erroImg } = await supabase.storage.from('redacoes_arquivos').upload(nomeFinalImg, paginas[i].imagem)
+          if (erroImg) throw erroImg
+          
+          const { data: { publicUrl: urlPublicaImg } } = supabase.storage.from('redacoes_arquivos').getPublicUrl(nomeFinalImg)
+          imagemPaginaUrl = urlPublicaImg
+        }
+        
+        paginasFinais.push({
+          texto: paginas[i].texto.trim(),
+          imagem_url: imagemPaginaUrl
+        })
+      }
+
+      // 3. Salvar no Banco
       const { error } = await supabase.from('livros_kids').insert([{
         professor_id: user.id,
         titulo: titulo.trim(),
         tema: tema.trim(),
         pontos: parseInt(pontos),
         capa_url: capaUrl,
-        paginas: paginas // Salvamos o array de páginas inteiro no banco
+        paginas: paginasFinais 
       }])
 
       if (error) throw error
       
-      alert("Livro publicado na Biblioteca com sucesso!")
+      alert("Livro Ilustrado publicado na Biblioteca com sucesso!")
       window.location.href = '/painel-professor'
     } catch (err) {
       alert("Erro ao salvar livro: " + err.message)
@@ -111,7 +136,7 @@ export default function EnviarLivro() {
             <BookOpen size={40} className="text-[#4ADE80] hidden sm:block" /> Publicar Livro
           </h1>
           <p className="text-xs md:text-sm font-bold text-[#555] uppercase tracking-wide mt-3">
-            Escreva uma história mágica página por página para a criançada ler.
+            Crie livros ilustrados página por página para a criançada.
           </p>
         </header>
         
@@ -158,14 +183,14 @@ export default function EnviarLivro() {
             <label className="cursor-pointer flex flex-col items-center gap-2 text-center">
               <ImageIcon size={32} className="text-[#1A1A1A] md:w-10 md:h-10" />
               <span className="font-black uppercase text-xs md:text-sm text-[#1A1A1A]">Capa do Livro (Obrigatório)</span>
-              <p className="text-[10px] md:text-xs font-bold text-[#555] italic">Escolha uma imagem chamativa para atrair os alunos.</p>
+              <p className="text-[10px] md:text-xs font-bold text-[#555] italic">Escolha uma imagem chamativa para a capa.</p>
               
               {capa ? (
                 <div className="mt-4 p-2 bg-white border-2 border-[#1A1A1A] rounded-xl">
                   <span className="text-xs font-bold text-[#FF0080]">{capa.name}</span>
                 </div>
               ) : (
-                <div className="mt-4 px-6 py-2 bg-[#1A1A1A] text-white rounded-full font-black text-xs uppercase">Anexar Imagem</div>
+                <div className="mt-4 px-6 py-2 bg-[#1A1A1A] text-white rounded-full font-black text-xs uppercase">Anexar Capa</div>
               )}
               
               <input type="file" className="hidden" accept="image/*" onChange={e => setCapa(e.target.files[0])} />
@@ -176,25 +201,41 @@ export default function EnviarLivro() {
           <div className="space-y-6 border-t-4 border-dashed border-[#1A1A1A]/10 pt-8">
             <div className="flex items-center justify-between">
               <label className="font-black uppercase italic text-sm md:text-lg text-[#1A1A1A] flex items-center gap-2">
-                <BookOpen size={20} className="text-[#4ADE80]" /> Escrever as Páginas
+                <BookOpen size={20} className="text-[#4ADE80]" /> Ilustrações e Textos
               </label>
               <span className="font-black text-xs bg-[#1A1A1A] text-white px-3 py-1 rounded-full">{paginas.length} PÁGINA(S)</span>
             </div>
 
-            {paginas.map((texto, index) => (
-              <div key={index} className="relative bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] p-4 md:p-6 rounded-2xl md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group">
-                <div className="flex items-center justify-between mb-3">
+            {paginas.map((pagina, index) => (
+              <div key={index} className="relative bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] p-4 md:p-6 rounded-2xl md:rounded-[30px] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] group flex flex-col gap-4">
+                
+                <div className="flex items-center justify-between mb-2">
                   <span className="font-black uppercase text-xs md:text-sm text-[#4ADE80] bg-[#1A1A1A] px-3 py-1 rounded-lg">Página {index + 1}</span>
                   <button type="button" onClick={() => removerPagina(index)} className="p-2 bg-white border-2 border-[#1A1A1A] rounded-lg text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
                     <Trash2 size={14} strokeWidth={3} />
                   </button>
                 </div>
+
+                {/* BOTÃO PARA IMAGEM DA PÁGINA */}
+                <label className="w-full flex items-center justify-center gap-2 p-3 bg-white border-2 border-dashed border-[#1A1A1A] rounded-xl cursor-pointer hover:bg-[#FFDE03]/10 transition-colors">
+                  <UploadCloud size={20} className="text-[#1A1A1A]" />
+                  <span className="font-bold text-xs md:text-sm text-[#1A1A1A] text-center w-full truncate">
+                    {pagina.imagem ? pagina.imagem.name : 'Anexar Ilustração (Opcional se colocar texto)'}
+                  </span>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*" 
+                    onChange={e => atualizarImagemPagina(index, e.target.files[0])} 
+                  />
+                </label>
+
+                {/* CAMPO DE TEXTO DA PÁGINA: AGORA SEM REQUIRED */}
                 <textarea 
-                  placeholder={`Escreva aqui a parte da história que vai aparecer na página ${index + 1}...`} 
+                  placeholder={`Escreva aqui o texto da página ${index + 1}... (Opcional se colocar imagem)`} 
                   className="w-full h-32 p-3 bg-white border-2 border-[#1A1A1A] rounded-xl text-sm md:text-base font-medium outline-none leading-relaxed resize-none font-serif custom-scrollbar" 
-                  value={texto} 
-                  onChange={e => atualizarPagina(index, e.target.value)} 
-                  required 
+                  value={pagina.texto} 
+                  onChange={e => atualizarTextoPagina(index, e.target.value)} 
                 />
               </div>
             ))}

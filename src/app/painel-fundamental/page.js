@@ -4,7 +4,7 @@ import {
   LayoutDashboard, PlayCircle, UserCircle, LogOut, ChevronRight, 
   CheckCircle2, Clock, BookOpen, ArrowRight, FileText, Sparkles, 
   Pencil, Star, StickyNote, Menu, X, AlertCircle, 
-  Headphones, Rocket, Trophy, Gamepad2, School, Bot, MessageCircle, Send, ArrowLeft, LifeBuoy, Map, ChevronLeft
+  Headphones, Rocket, Trophy, Gamepad2, School, Bot, MessageCircle, Send, ArrowLeft, LifeBuoy, Map, ChevronLeft, HelpCircle
 } from 'lucide-react'
 
 // ARRAY DE AVATARES DIVERTIDOS E INCLUSIVOS
@@ -23,51 +23,45 @@ export default function DashboardFundamental() {
   const [perfil, setPerfil] = useState(null)
   const [loading, setLoading] = useState(true)
   const [abaAtiva, setAbaAtiva] = useState('home')
+  const [aulas, setAulas] = useState([])
   const [temas, setTemas] = useState([]) 
   const [redacaoSelecionada, setRedacaoSelecionada] = useState(null)
   const [minhasRedacoes, setMinhasRedacoes] = useState([]) 
   
-  // --- LÓGICA DOS DESAFIOS, TRILHAS E LIVROS ---
   const [desafios, setDesafios] = useState([])
   const [trilhas, setTrilhas] = useState([]) 
   const [respostasEnviadas, setRespostasEnviadas] = useState({}) 
   const [respondendoId, setRespondendoId] = useState(null)
   
-  // NOVO: LIVROS KIDS
   const [livros, setLivros] = useState([])
-  const [livrosLidos, setLivrosLidos] = useState([]) // Array com os IDs dos livros que o aluno já leu
-  const [livroAtivo, setLivroAtivo] = useState(null) // Controla se estamos lendo um livro agora
-  const [paginaAtual, setPaginaAtual] = useState(0) // Controla a página da leitura
+  const [livrosLidos, setLivrosLidos] = useState([]) 
+  const [livroAtivo, setLivroAtivo] = useState(null) 
+  const [paginaAtual, setPaginaAtual] = useState(0) 
 
-  // NOVO: ESTADO DO RANKING GERAL (TOP 10)
   const [ranking, setRanking] = useState([])
 
-  // DADOS DO PERFIL
   const [nome, setNome] = useState('')
   const [escola, setEscola] = useState('') 
   const [fotoPerfil, setFotoPerfil] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
   
-  // ESTADOS DE CONTROLE (Mobile e Créditos)
   const [menuAberto, setMenuAberto] = useState(false)
   const [creditosRestantes, setCreditosRestantes] = useState(6)
   const [mostrandoAvatares, setMostrandoAvatares] = useState(false) 
 
-  // ==========================================
-  // ESTADOS DA VIVI (Assistente IA)
-  // ==========================================
+  const [viviAberta, setViviAberta] = useState(false) 
   const [mensagemVivi, setMensagemVivi] = useState('')
   const [carregandoVivi, setCarregandoVivi] = useState(false)
   const [historicoVivi, setHistoricoVivi] = useState([
-    { role: 'model', parts: [{ text: 'Oi, explorador! Eu sou a Vivi, sua parceira de aventuras. Quer ajuda para escrever seu textinho hoje?' }] }
+    { role: 'model', parts: [{ text: 'Oi, explorador! Eu sou a Vivi, sua parceira de aventuras. Quer ajuda com seus estudos hoje?' }] }
   ])
   const chatFimRef = useRef(null)
 
   useEffect(() => {
-    if (abaAtiva === 'vivi' && chatFimRef.current) {
+    if (viviAberta && chatFimRef.current) {
       chatFimRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [historicoVivi, abaAtiva])
+  }, [historicoVivi, viviAberta])
 
   const formatarMensagem = (texto) => {
     const textoLimpo = texto.replace(/\*/g, '');
@@ -135,7 +129,7 @@ export default function DashboardFundamental() {
       setNome(p.nome_completo || '')
       setFotoPerfil(p.foto_url || AVATARES_DISPONIVEIS[0]) 
       setEscola(p.escola || '') 
-      setLivrosLidos(p.livros_lidos || []) // Carrega os IDs dos livros já lidos pelo aluno
+      setLivrosLidos(p.livros_lidos || []) 
 
       try {
         const { data: rankData } = await supabase.from('perfis')
@@ -146,6 +140,15 @@ export default function DashboardFundamental() {
           .limit(10)
         setRanking(rankData || [])
       } catch (err) { console.log('Coluna de pontuação ainda não criada.') }
+      
+      const { data: a } = await supabase.from('aulas').select('*').eq('foco_ensino', 'fundamental')
+      const aulasMapeadas = (a || []).map(item => ({
+        ...item,
+        video_final: item.url_video || item.video_url,
+        legenda_final: item.conteudo_texto || item.legenda,
+        capa_final: item.capa_url
+      }))
+      setAulas(aulasMapeadas)
 
       const { data: listaTemas } = await supabase.from('temas_redacao').select('*').eq('foco_ensino', 'fundamental').order('created_at', { ascending: false })
       setTemas(listaTemas || [])
@@ -156,7 +159,6 @@ export default function DashboardFundamental() {
       const { data: listaTrilhas } = await supabase.from('trilhas_gamificadas').select('*').order('created_at', { ascending: true })
       setTrilhas(listaTrilhas || [])
 
-      // Busca os livros na nova tabela
       try {
         const { data: listaLivros } = await supabase.from('livros_kids').select('*').order('created_at', { ascending: false })
         setLivros(listaLivros || [])
@@ -229,9 +231,6 @@ export default function DashboardFundamental() {
     setMostrandoAvatares(false);
   }
 
-  // ===============================================
-  // SISTEMA DE LEITURA DO LIVRO E GAMIFICAÇÃO
-  // ===============================================
   const abrirLivro = (livro) => {
     setLivroAtivo(livro)
     setPaginaAtual(0)
@@ -257,13 +256,11 @@ export default function DashboardFundamental() {
     const { data: { user } } = await supabase.auth.getUser()
     
     try {
-      // 1. Pega os dados atuais do perfil (pontos e livros_lidos)
       const { data: pAtual } = await supabase.from('perfis').select('pontuacao, livros_lidos').eq('id', user.id).single()
       
       const pontosAtuais = pAtual?.pontuacao || 0
       const livrosJaLidos = pAtual?.livros_lidos || []
       
-      // 2. Se ele ainda não leu esse livro, dá os pontos e salva!
       if (!livrosJaLidos.includes(livroAtivo.id)) {
         const novosPontos = pontosAtuais + livroAtivo.pontos
         const novaListaLivros = [...livrosJaLidos, livroAtivo.id]
@@ -286,9 +283,7 @@ export default function DashboardFundamental() {
     }
   }
 
-
   const desafioAtual = desafios.find(d => respostasEnviadas[d.id] === undefined);
-
   const trilhasLinguagens = trilhas.filter(t => t.disciplina === 'Linguagens' || !t.disciplina)
   const trilhasMatematica = trilhas.filter(t => t.disciplina === 'Matemática')
   const trilhasIngles = trilhas.filter(t => t.disciplina === 'Inglês') 
@@ -325,14 +320,13 @@ export default function DashboardFundamental() {
 
       <nav className="flex flex-col gap-3 md:gap-4 flex-1 shrink-0">
         <NavItem icon={<LayoutDashboard size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Home" color="#FF0080" active={abaAtiva === 'home' && !livroAtivo} onClick={() => {setAbaAtiva('home'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<Bot size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Vivi IA" color="#A78BFA" active={abaAtiva === 'vivi' && !livroAtivo} onClick={() => {setAbaAtiva('vivi'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<HelpCircle size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Simulados" color="#3B82F6" active={false} onClick={() => window.location.href = '/simulados'} />
         <NavItem icon={<Gamepad2 size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Jogos" color="#F59E0B" active={abaAtiva === 'jogos' && !livroAtivo} onClick={() => {setAbaAtiva('jogos'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={''} label="Mapa de Trilhas" color="#4ADE80" active={abaAtiva === 'trilhas' && !livroAtivo} onClick={() => {setAbaAtiva('trilhas'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
         <NavItem icon={<Trophy size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Desafios" color="#FFDE03" active={abaAtiva === 'temas' && !livroAtivo} onClick={() => {setAbaAtiva('temas'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        {/* A ABA DE AVENTURAS AGORA ABRE OS LIVROS! */}
         <NavItem icon={<BookOpen size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Aventuras" color="#FF0080" active={abaAtiva === 'livros'} onClick={() => {setAbaAtiva('livros'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
+        <NavItem icon={<LifeBuoy size={20}/>} label="Suporte" color="#3B82F6" active={false} onClick={() => window.location.href = '/suporte'} />
         <NavItem icon={<UserCircle size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Meu Perfil" color="#70E0BB" active={abaAtiva === 'perfil' && !livroAtivo} onClick={() => {setAbaAtiva('perfil'); setLivroAtivo(null); setRedacaoSelecionada(null); setMenuAberto(false)}} />
-        <NavItem icon={<LifeBuoy size={20} strokeWidth={3} className="md:w-6 md:h-6"/>} label="Suporte" color="#3B82F6" active={false} onClick={() => window.location.href = '/suporte'} />
       </nav>
 
       <button onClick={async () => { const s = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY); await s.auth.signOut(); window.location.href='/login'}} className="flex items-center justify-center lg:justify-start gap-2 md:gap-3 px-4 py-3 font-black text-[#1A1A1A] hover:text-[#FF0080] transition-all border-2 border-transparent hover:border-[#1A1A1A] rounded-xl md:rounded-2xl hover:bg-[#FF0080]/10 mt-auto pt-6 shrink-0">
@@ -361,13 +355,11 @@ export default function DashboardFundamental() {
         </div>
       )}
 
-      {/* ÁREA PRINCIPAL COM PADDING AJUSTADO E OVERFLOW */}
-      <main className={`flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto relative pb-24 lg:pb-12 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
+      <main className={`flex-1 p-4 sm:p-6 lg:p-10 overflow-y-auto relative pb-32 lg:pb-12 ${menuAberto ? 'blur-sm lg:blur-none' : ''}`}>
         <div className="absolute top-10 right-10 opacity-10 pointer-events-none hidden md:block"><Star className="w-[100px] h-[100px] lg:w-[150px] lg:h-[150px] text-[#FFDE03] fill-[#FFDE03] transform rotate-45" /></div>
         
         <div className="h-16 lg:hidden"></div>
 
-        {/* TELA DE LEITURA DO LIVRO ATIVO */}
         {livroAtivo ? (
           <div className="max-w-4xl mx-auto animate-in zoom-in-95 duration-500 relative">
             <button onClick={() => setLivroAtivo(null)} className="flex items-center gap-2 font-black uppercase italic mb-6 hover:text-[#FF0080] transition-colors group">
@@ -376,7 +368,6 @@ export default function DashboardFundamental() {
             
             <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] md:shadow-[12px_12px_0px_0px_rgba(26,26,26,1)] p-6 md:p-12 min-h-[500px] flex flex-col">
               
-              {/* Cabeçalho de Leitura */}
               <div className="flex items-center justify-between border-b-4 border-dashed border-[#1A1A1A]/10 pb-6 mb-8">
                 <div>
                   <h2 className="text-2xl md:text-4xl font-black uppercase text-[#1A1A1A] italic leading-tight">{livroAtivo.titulo}</h2>
@@ -387,14 +378,22 @@ export default function DashboardFundamental() {
                 </div>
               </div>
 
-              {/* O Conteúdo da Página */}
-              <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-right-4">
-                <p className="text-lg md:text-2xl font-medium leading-loose md:leading-loose whitespace-pre-wrap text-[#1A1A1A] font-serif">
-                  {livroAtivo.paginas[paginaAtual]}
-                </p>
-              </div>
+               {/* O Conteúdo da Página */}
+<div className="flex-1 flex flex-col items-center justify-center gap-6 animate-in slide-in-from-right-4">
+  {livroAtivo.paginas[paginaAtual]?.imagem_url && (
+    <img 
+      src={livroAtivo.paginas[paginaAtual].imagem_url} 
+      className="max-h-[350px] w-auto object-contain rounded-2xl border-4 border-[#1A1A1A] shadow-[4px_4px_0px_0px_rgba(26,26,26,1)]" 
+      alt={`Ilustração da página ${paginaAtual + 1}`} 
+    />
+  )}
+  {livroAtivo.paginas[paginaAtual]?.texto && (
+    <p className="text-lg md:text-2xl font-medium leading-loose md:leading-loose whitespace-pre-wrap text-[#1A1A1A] font-serif text-center w-full">
+      {livroAtivo.paginas[paginaAtual].texto}
+    </p>
+  )}
+</div>
 
-              {/* Controles de Navegação (Botões) */}
               <div className="flex items-center justify-between mt-10 pt-6 border-t-4 border-[#1A1A1A] gap-4">
                 <button 
                   onClick={paginaAnterior} 
@@ -420,11 +419,9 @@ export default function DashboardFundamental() {
                   </button>
                 )}
               </div>
-
             </div>
           </div>
         ) : (
-          /* O RESTO DO DASHBOARD (Quando nenhum livro está aberto) */
           <>
             {abaAtiva === 'home' && !redacaoSelecionada && (
               <div className="max-w-6xl mx-auto space-y-10 md:space-y-12">
@@ -451,27 +448,26 @@ export default function DashboardFundamental() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('vivi')}>
+                  {/* NOVO: CARD DE SIMULADOS AQUI NA TELA INICIAL (NO LUGAR DA VIVI) */}
+                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#A78BFA] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => window.location.href = '/simulados'}>
                     <div className="relative z-10 text-white">
-                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Falar com<br/>a Vivi</h3>
-                      <p className="font-bold opacity-90 mb-4 md:mb-6 text-sm md:text-base">Professora robô super esperta!</p>
-                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">BATER PAPO <MessageCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
+                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Super<br/>Simulado</h3>
+                      <p className="font-bold opacity-90 mb-4 md:mb-6 text-sm md:text-base">Teste seus poderes agora!</p>
+                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-[#FFDE03] text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">COMEÇAR <HelpCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
                     </div>
-                    <Bot size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
+                    <HelpCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
                   </div>
 
-                  {/* ESSE BOTÃO AGORA CHAMA A BIBLIOTECA (LIVROS) */}
-                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('livros')}>
-                    <div className="relative z-10 text-white">
-                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Biblioteca<br/>Mágica</h3>
-                      <p className="font-bold opacity-90 mb-4 md:mb-6 text-sm md:text-base">Leia livros e ganhe pontos!</p>
-                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">LER AGORA <BookOpen size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
+                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('')}>
+                    <div className="relative z-10 text-[#1A1A1A]">
+                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Sala de<br/>Aulas</h3>
+                      <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-base">Venha assistir as aulas!</p>
+                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">ASSISTIR <PlayCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
                     </div>
-                    <BookOpen size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/10 transform rotate-12 group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
+                    <PlayCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
                   </div>
                 </div>
 
-                {/* TRILHAS DE LINGUAGENS */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -516,7 +512,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* TRILHAS DE MATEMÁTICA */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#3B82F6] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -561,7 +556,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* TRILHAS DE INGLÊS */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#A78BFA] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -606,7 +600,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* DESAFIO ATUAL */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#FFDE03] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">
@@ -653,7 +646,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* BOTÃO ESCREVER TEXTO */}
                 <div>
                   <button 
                     onClick={() => window.location.href = '/enviar-redacao'}
@@ -672,7 +664,6 @@ export default function DashboardFundamental() {
                   </button>
                 </div>
 
-                {/* RANKING GERAL */}
                 <div className="pt-4 md:pt-8">
                   <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] p-6 md:p-10">
                     <div className="flex items-center gap-3 mb-6 md:mb-8 border-b-4 border-[#FF0080] pb-4">
@@ -718,7 +709,6 @@ export default function DashboardFundamental() {
               </div>
             )}
 
-            {/* A NOVA ABA: BIBLIOTECA DE LIVROS KIDS */}
             {abaAtiva === 'livros' && !livroAtivo && (
               <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
                 <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A] mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FF0080] inline-block">
@@ -744,12 +734,10 @@ export default function DashboardFundamental() {
                               <BookOpen size={80} className="text-[#1A1A1A] opacity-20" />
                             )}
                             
-                            {/* TAG DE PONTOS */}
                             <div className="absolute top-3 left-3 bg-[#FFDE03] text-[#1A1A1A] px-3 py-1 rounded-xl text-xs font-black uppercase border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] flex items-center gap-1 z-10">
                               <Star size={14} className="fill-[#1A1A1A]" /> {livro.pontos} PTS
                             </div>
                             
-                            {/* TAG DE CONCLUÍDO (Se já leu) */}
                             {lido && (
                               <div className="absolute inset-0 bg-[#70E0BB]/80 backdrop-blur-sm flex items-center justify-center z-20 flex-col">
                                 <CheckCircle2 size={48} className="text-[#1A1A1A] mb-2" />
@@ -780,7 +768,6 @@ export default function DashboardFundamental() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                   
-                  {/* CARD 1: SAGA DA MATEMÁTICA */}
                   <div onClick={() => window.location.href = '/game'} className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 hover:shadow-none transition-all cursor-pointer flex flex-col overflow-hidden group">
                     <div className="h-48 md:h-56 bg-[#FFDE03] border-b-4 border-[#1A1A1A] relative flex items-center justify-center overflow-hidden">
                        <div className="absolute inset-0 opacity-20 bg-[url('/mapa-oficial.PNG')] bg-cover bg-bottom mix-blend-multiply transition-transform duration-700 group-hover:scale-110"></div>
@@ -796,7 +783,6 @@ export default function DashboardFundamental() {
                     </div>
                   </div>
 
-                  {/* CARD 2: SAGA DE PORTUGUÊS */}
                   <div onClick={() => window.location.href = '/game-portugues'} className="bg-white border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:-translate-y-2 hover:shadow-none transition-all cursor-pointer flex flex-col overflow-hidden group">
                     <div className="h-48 md:h-56 bg-[#70E0BB] border-b-4 border-[#1A1A1A] relative flex items-center justify-center overflow-hidden">
                        <div className="absolute top-4 left-4 bg-[#FFDE03] text-[#1A1A1A] px-3 py-1 rounded-xl text-xs md:text-sm font-black uppercase border-2 border-[#1A1A1A] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] z-10 animate-pulse">NOVO!</div>
@@ -811,12 +797,10 @@ export default function DashboardFundamental() {
                     </div>
                   </div>
 
-                  {/* CARD 3: EM BREVE */}
                   <div className="bg-[#F9F6F0] border-4 border-dashed border-[#1A1A1A] rounded-[30px] md:rounded-[40px] flex flex-col items-center justify-center p-8 opacity-60 h-full min-h-[350px]">
                      <Gamepad2 size={60} className="text-[#1A1A1A] mb-4 opacity-50" />
                      <p className="font-black text-xl text-[#1A1A1A] uppercase text-center italic">Mais jogos<br/>sendo criados...</p>
                   </div>
-
                 </div>
               </div>
             )}
@@ -824,7 +808,6 @@ export default function DashboardFundamental() {
             {abaAtiva === 'trilhas' && !livroAtivo && (
               <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500 space-y-12">
                 
-                {/* SESSÃO DE LINGUAGENS */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#F59E0B] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -850,6 +833,9 @@ export default function DashboardFundamental() {
                               <div className="w-full h-full flex items-center justify-center opacity-20"></div>
                             )}
                             <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA LING. {idx + 1}</div>
+                            <div className="absolute top-2 right-2 bg-white text-[#F59E0B] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                              <Trophy size={12}/> {trilha.total_pontos} PTS
+                            </div>
                           </div>
                           <div className="p-5 flex-1 flex flex-col justify-between">
                             <div>
@@ -866,7 +852,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* TRILHAS DE MATEMÁTICA */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#3B82F6] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -892,6 +877,9 @@ export default function DashboardFundamental() {
                               <div className="w-full h-full flex items-center justify-center opacity-20"></div>
                             )}
                             <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA MAT. {idx + 1}</div>
+                            <div className="absolute top-2 right-2 bg-white text-[#3B82F6] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                              <Trophy size={12}/> {trilha.total_pontos} PTS
+                            </div>
                           </div>
                           <div className="p-5 flex-1 flex flex-col justify-between">
                             <div>
@@ -908,7 +896,6 @@ export default function DashboardFundamental() {
                   )}
                 </div>
 
-                {/* TRILHAS DE INGLÊS */}
                 <div>
                   <div className="flex items-end justify-between mb-4 md:mb-6 border-b-4 md:border-b-8 border-[#A78BFA] pb-2">
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase italic tracking-tighter text-[#1A1A1A] flex items-center gap-2">
@@ -934,6 +921,9 @@ export default function DashboardFundamental() {
                               <div className="w-full h-full flex items-center justify-center opacity-20"></div>
                             )}
                             <div className="absolute top-2 left-2 bg-[#1A1A1A] text-white px-3 py-1 rounded-lg text-xs font-black uppercase">TRILHA ING. {idx + 1}</div>
+                            <div className="absolute top-2 right-2 bg-white text-[#A78BFA] px-3 py-1 rounded-lg text-xs font-black uppercase border-2 border-[#1A1A1A] flex items-center gap-1 shadow-[2px_2px_0px_0px_#1A1A1A]">
+                              <Trophy size={12}/> {trilha.total_pontos} PTS
+                            </div>
                           </div>
                           <div className="p-5 flex-1 flex flex-col justify-between">
                             <div>
@@ -1071,6 +1061,72 @@ export default function DashboardFundamental() {
           </>
         )}
       </main>
+
+      {/* BOTÃO FLUTUANTE DA VIVI */}
+      <button 
+        onClick={() => setViviAberta(!viviAberta)} 
+        className={`fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 w-16 h-16 md:w-20 md:h-20 bg-[#A78BFA] border-4 border-[#1A1A1A] rounded-full shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] flex items-center justify-center hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all ${viviAberta ? 'scale-0' : 'scale-100'}`}
+      >
+        <Bot size={36} className="text-white" />
+      </button>
+
+      {/* CHAT FLUTUANTE DA VIVI */}
+      {viviAberta && (
+        <div className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 w-[calc(100vw-3rem)] sm:w-[400px] h-[500px] md:h-[600px] max-h-[80vh] bg-white border-4 border-[#1A1A1A] rounded-[30px] shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-8">
+          
+          <div className="bg-[#A78BFA] border-b-4 border-[#1A1A1A] p-3 md:p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white border-2 border-[#1A1A1A] rounded-full overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                <img src="/vivi.png" alt="Vivi" className="w-full h-full object-cover" />
+              </div>
+              <div>
+                <h4 className="font-black uppercase text-white leading-tight text-sm md:text-base">Vivi IA</h4>
+                <p className="text-[10px] font-bold text-white/90 italic">Sua parceira de estudos!</p>
+              </div>
+            </div>
+            <button onClick={() => setViviAberta(false)} className="p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors cursor-pointer">
+              <X size={20} className="text-white" strokeWidth={3} />
+            </button>
+          </div>
+
+          <div className="flex-1 p-4 overflow-y-auto bg-[#F9F6F0] flex flex-col gap-4 custom-scrollbar">
+            {historicoVivi.map((msg, index) => (
+              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-3 rounded-2xl border-2 border-[#1A1A1A] text-xs sm:text-sm font-medium leading-relaxed shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] ${msg.role === 'user' ? 'bg-[#FFDE03] rounded-br-none' : 'bg-white rounded-bl-none'}`}>
+                  {formatarMensagem(msg.parts[0].text)}
+                </div>
+              </div>
+            ))}
+            {carregandoVivi && (
+              <div className="flex justify-start">
+                <div className="bg-white border-2 border-[#1A1A1A] p-3 rounded-2xl rounded-bl-none text-xs font-bold animate-pulse text-[#A78BFA] shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                  Vivi está digitando...
+                </div>
+              </div>
+            )}
+            <div ref={chatFimRef} />
+          </div>
+
+          <form onSubmit={enviarMensagemVivi} className="border-t-4 border-[#1A1A1A] bg-white p-3 flex gap-2">
+            <input 
+              type="text" 
+              value={mensagemVivi}
+              onChange={(e) => setMensagemVivi(e.target.value)}
+              placeholder="Pergunte algo..." 
+              className="flex-1 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-xl px-3 py-2 text-sm font-bold outline-none focus:bg-[#A78BFA]/10 transition-colors"
+              disabled={carregandoVivi}
+            />
+            <button 
+              type="submit"
+              disabled={carregandoVivi || !mensagemVivi.trim()}
+              className="bg-[#FF0080] border-2 border-[#1A1A1A] px-4 py-2 rounded-xl text-white hover:bg-[#1A1A1A] transition-colors disabled:opacity-50 shrink-0 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] flex items-center justify-center cursor-pointer"
+            >
+              <Send size={16} strokeWidth={3} />
+            </button>
+          </form>
+        </div>
+      )}
+
     </div>
   )
 }
