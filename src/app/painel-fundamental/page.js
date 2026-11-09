@@ -458,13 +458,13 @@ export default function DashboardFundamental() {
                     <HelpCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-white/20 transform rotate-[-10deg] group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
                   </div>
 
-                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#70E0BB] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('')}>
+                  <div className="relative group p-6 md:p-8 rounded-[30px] md:rounded-[40px] bg-[#FF0080] border-4 border-[#1A1A1A] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all cursor-pointer overflow-hidden" onClick={() => setAbaAtiva('livros')}>
                     <div className="relative z-10 text-[#1A1A1A]">
-                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Sala de<br/>Aulas</h3>
-                      <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-base">Venha assistir as aulas!</p>
-                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">ASSISTIR <PlayCircle size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
+                      <h3 className="text-2xl md:text-3xl font-black uppercase mb-1 md:mb-2 leading-tight">Novas<br/>Aventuras</h3>
+                      <p className="font-bold opacity-80 mb-4 md:mb-6 text-sm md:text-base">Leia livros e ganhe pontos!</p>
+                      <button className="flex items-center justify-between w-full px-4 py-3 md:px-6 md:py-4 bg-white text-[#1A1A1A] border-4 border-[#1A1A1A] rounded-full font-black text-xs md:text-base">LER AGORA <BookOpen size={20} strokeWidth={3} className="md:w-6 md:h-6" /></button>
                     </div>
-                    <PlayCircle size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-45 group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
+                    <BookOpen size={120} className="absolute -right-4 -bottom-6 md:-right-5 md:-bottom-10 text-[#1A1A1A]/10 transform rotate-12 group-hover:scale-110 transition-transform md:w-[150px] md:h-[150px]" />
                   </div>
                 </div>
 
