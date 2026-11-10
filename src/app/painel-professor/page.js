@@ -4,7 +4,7 @@ import {
   PlusCircle, BookOpen, GraduationCap, CheckCircle2, 
   Clock, ArrowRight, UserCircle, LogOut, Camera, Search, Pencil, 
   LayoutDashboard, Users, PlayCircle, Star, FileText, ArrowLeft,
-  PenTool, Trash2, Phone, School, Rocket, CalendarDays, LifeBuoy, Paperclip, HelpCircle, Map
+  PenTool, Trash2, Phone, School, Rocket, CalendarDays, LifeBuoy, Paperclip, HelpCircle, Map, Trophy, RotateCcw
 } from 'lucide-react'
 
 export default function PainelProfessor() {
@@ -192,6 +192,33 @@ export default function PainelProfessor() {
     setTrilhas(trilhas.filter(t => t.id !== id));
   }
 
+  async function zerarRanking() {
+    if(!confirm("⚠️ ATENÇÃO: Tem certeza que deseja ZERAR os pontos de TODOS os alunos? Isso iniciará uma nova temporada e não pode ser desfeito!")) return;
+    
+    // Pega os IDs de todos os alunos que estão na tela
+    const idsAlunos = alunos.map(a => a.id);
+    if (idsAlunos.length === 0) return alert("Nenhum aluno encontrado para zerar.");
+
+    const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    
+    try {
+      // Zera no banco de dados apenas os alunos listados
+      const { error } = await supabase
+        .from('perfis')
+        .update({ pontuacao: 0 })
+        .in('id', idsAlunos);
+        
+      if (error) throw error;
+      
+      // Zera na tela na mesma hora, sem precisar recarregar a página!
+      setAlunos(alunos.map(a => ({ ...a, pontuacao: 0 })));
+      
+      alert("🏆 Temporada reiniciada! Todos os alunos estão com 0 pontos.");
+    } catch (err) {
+      alert("Erro ao zerar ranking: " + err.message);
+    }
+  }
+
   async function handleUploadFoto(e) {
     const file = e.target.files[0]; if (!file) return;
     setUploadingFoto(true);
@@ -308,6 +335,20 @@ export default function PainelProfessor() {
                 <div className="flex flex-col gap-2 mt-4">
                   <button onClick={() => setAbaAtiva('ver-questoes')} className="w-full py-2 md:py-3 bg-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs">Catálogo ({questoes.length})</button>
                   <button onClick={() => window.location.href = '/enviar-questao'} className="w-full py-2 md:py-3 bg-[#1A1A1A] text-white border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase italic text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 transition-colors"><PlusCircle size={14}/> Nova Questão</button>
+                </div>
+              </div>
+
+              {/* NOVO: CARD DO RANKING GERAL */}
+              <div className="bg-[#1A1A1A] border-4 border-[#1A1A1A] rounded-[30px] md:rounded-[40px] p-5 md:p-8 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] md:shadow-[8px_8px_0px_0px_rgba(26,26,26,1)] hover:translate-x-1 cursor-pointer flex flex-col justify-between group" onClick={() => setAbaAtiva('ranking')}>
+                <div className="text-white">
+                  <Trophy size={32} className="mb-3 md:mb-4 md:w-10 md:h-10 text-[#FFDE03]" />
+                  <h3 className="text-xl md:text-2xl font-black uppercase italic mb-1 md:mb-2 text-[#FFDE03]">Ranking da Turma</h3>
+                  <p className="font-bold text-sm md:text-base opacity-80 leading-tight">Gamificação geral.</p>
+                </div>
+                <div className="mt-4 md:mt-6">
+                  <button className="w-full py-2 md:py-3 bg-[#FFDE03] text-[#1A1A1A] border-2 md:border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-[10px] sm:text-xs flex items-center justify-center gap-1 md:gap-2 shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+                    Ver Tabela de Líderes <ArrowRight size={14} className="md:w-4 md:h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -570,6 +611,50 @@ export default function PainelProfessor() {
               <label className="text-base md:text-xl font-black uppercase italic">Nome Mestre</label>
               <input className="w-full bg-[#F9F6F0] border-2 md:border-4 border-[#1A1A1A] rounded-xl md:rounded-2xl p-3 md:p-4 text-sm md:text-xl font-bold outline-none" value={nome} readOnly />
             </div>
+          </div>
+        )}
+
+{abaAtiva === 'ranking' && (
+          <div className="max-w-6xl mx-auto animate-in slide-in-from-right-8 duration-500">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 md:mb-12 border-b-4 md:border-b-8 border-[#FFDE03] pb-4">
+              <div className="flex items-center gap-4 inline-flex">
+                <Trophy size={40} className="text-[#FFDE03]" />
+                <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-[#1A1A1A]">
+                  Ranking Geral
+                </h2>
+              </div>
+              
+              <button 
+                onClick={zerarRanking} 
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white border-4 border-[#1A1A1A] rounded-xl font-black uppercase text-sm md:text-base hover:bg-[#1A1A1A] hover:text-red-500 transition-all shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 shrink-0"
+              >
+                <RotateCcw size={20} strokeWidth={3} /> Zerar Temporada
+              </button>
+            </div>
+            
+            <div className="bg-white border-4 border-[#1A1A1A] rounded-[30px] shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] p-6 md:p-10">
+              <div className="flex flex-col gap-4">
+                {[...alunos].sort((a, b) => (b.pontuacao || 0) - (a.pontuacao || 0)).map((aluno, index) => (
+                  <div key={aluno.id} className="flex items-center gap-4 p-4 bg-[#F9F6F0] border-2 border-[#1A1A1A] rounded-2xl hover:bg-white hover:-translate-y-1 transition-all shadow-[2px_2px_0px_0px_rgba(26,26,26,1)]">
+                    <div className={`font-black text-2xl md:text-4xl w-12 text-center shrink-0 ${index === 0 ? 'text-[#F59E0B]' : index === 1 ? 'text-[#94A3B8]' : index === 2 ? 'text-[#B45309]' : 'text-[#1A1A1A]'}`}>
+                      {index + 1}º
+                    </div>
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full border-2 md:border-4 border-[#1A1A1A] overflow-hidden shrink-0 bg-white">
+                      {aluno.foto_url ? <img src={aluno.foto_url} className="w-full h-full object-cover" /> : <UserCircle className="w-full h-full text-[#1A1A1A] opacity-50" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-base md:text-xl uppercase truncate text-[#1A1A1A]">{aluno.nome_completo}</p>
+                      <p className="text-[10px] md:text-xs font-bold text-[#555] uppercase truncate tracking-wider">{aluno.escola || 'Escola não informada'}</p>
+                    </div>
+                    <div className="bg-[#70E0BB] text-[#1A1A1A] border-2 border-[#1A1A1A] px-4 py-2 rounded-xl shadow-[2px_2px_0px_0px_#1A1A1A] shrink-0">
+                      <span className="font-black text-sm md:text-lg">{aluno.pontuacao || 0} PTS</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
       </main>

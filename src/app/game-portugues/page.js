@@ -217,10 +217,13 @@ export default function MundoPortugues() {
     }
   }
 
-  const fecharFeedback = async () => {
+const fecharFeedback = async () => {
     tocarClick()
     const tipoAtual = feedback.tipo
     setFeedback(null)
+
+    // Se errou, não salva nada, só deixa tentar de novo
+    if (tipoAtual === 'erro') return;
 
     let novaFase = faseAtual
 
@@ -240,16 +243,24 @@ export default function MundoPortugues() {
       setFaseAtual(novaFase) 
     }
     
-
-    if ((tipoAtual === 'acerto' || tipoAtual === 'zerou') && userId) {
+    // Só atualiza banco e dá pontos se houver usuário
+    if (userId) {
        const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-       await supabase.from('perfis').update({ fase_portugues: novaFase }).eq('id', userId)
+       
+       // Buscar a fase e os pontos ATUAIS no banco antes de fazer qualquer coisa
+       const { data: pData } = await supabase.from('perfis').select('fase_portugues, pontuacao').eq('id', userId).single()
+       
+       const faseSalvaNoBanco = pData?.fase_portugues || 1
 
-       try {
-         const { data: perfAtual } = await supabase.from('perfis').select('pontuacao').eq('id', userId).single()
-         const novosPontos = (perfAtual?.pontuacao || 0) + 10
-         await supabase.from('perfis').update({ pontuacao: novosPontos }).eq('id', userId)
-       } catch (err) {}
+       // A mágica acontece aqui: Só salva e só pontua se a fase for INÉDITA!
+       if (faseSalvaNoBanco < novaFase) {
+          // 1. Atualiza até que fase ele já chegou no jogo
+          await supabase.from('perfis').update({ fase_portugues: novaFase }).eq('id', userId)
+
+          // 2. Dá os 10 pontinhos lá pro cofre do Ranking Geral
+          const novosPontos = (pData?.pontuacao || 0) + 10
+          await supabase.from('perfis').update({ pontuacao: novosPontos }).eq('id', userId)
+       }
     }
   }
 

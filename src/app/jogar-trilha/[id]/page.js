@@ -65,28 +65,37 @@ export default function JogarTrilha() {
   // ==========================================
   // LÓGICA BLINDADA PARA CONCLUIR MISSÕES
   // ==========================================
-  async function concluirMissaoAtiva() {
+async function concluirMissaoAtiva() {
     if (!missaoAtiva) return
     const idMissao = missaoAtiva.idKey
     const pontosGanhos = missaoAtiva.pontos
 
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    const { data: { user } } = await supabase.auth.getUser() // Novo: Pegando o usuário atual
     
     const missoesAtuais = progresso?.missoes_concluidas || []
     const novasMissoesConcluidas = [...missoesAtuais, idMissao]
-    const novosPontos = (progresso?.pontos_acumulados || 0) + pontosGanhos
+    const novosPontosTrilha = (progresso?.pontos_acumulados || 0) + pontosGanhos
 
     try {
-      const { error } = await supabase.from('progresso_trilhas').update({
+      // 1. Salva o progresso DENTRO DA TRILHA
+      const { error: erroTrilha } = await supabase.from('progresso_trilhas').update({
         missoes_concluidas: novasMissoesConcluidas,
-        pontos_acumulados: novosPontos
+        pontos_acumulados: novosPontosTrilha
       }).eq('id', progresso.id)
 
-      if (error) throw error
+      if (erroTrilha) throw erroTrilha
 
-      setProgresso({ ...progresso, missoes_concluidas: novasMissoesConcluidas, pontos_acumulados: novosPontos })
+      // 2. NOVO: Manda os pontos também para o COFRINHO CENTRAL (Ranking Geral)
+      if (user) {
+        const { data: pAtual } = await supabase.from('perfis').select('pontuacao').eq('id', user.id).single()
+        const pontosGeraisAtualizados = (pAtual?.pontuacao || 0) + pontosGanhos
+        await supabase.from('perfis').update({ pontuacao: pontosGeraisAtualizados }).eq('id', user.id)
+      }
+
+      setProgresso({ ...progresso, missoes_concluidas: novasMissoesConcluidas, pontos_acumulados: novosPontosTrilha })
       setMissaoAtiva(null)
-      alert(`🎉 VITÓRIA! Você ganhou +${pontosGanhos} Pontos!`)
+      alert(`🎉 VITÓRIA! Você ganhou +${pontosGanhos} Pontos Mágicos no Ranking Geral!`)
     } catch (err) {
       console.error(err)
       alert("Ops, deu um erro ao salvar seu progresso. Tente novamente!")

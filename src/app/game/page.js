@@ -204,10 +204,13 @@ export default function MundoMatematica() {
   // ==========================================
   // SALVANDO A FASE E DANDO PONTOS NO BANCO
   // ==========================================
-  const fecharFeedback = async () => {
+const fecharFeedback = async () => {
     tocarClick()
     const tipoAtual = feedback.tipo
     setFeedback(null)
+
+    // Se errou, não faz nada com banco, só fecha pra ele tentar de novo
+    if (tipoAtual === 'erro') return;
 
     let novaFase = faseAtual
 
@@ -221,19 +224,25 @@ export default function MundoMatematica() {
       setFaseAtual(novaFase) 
     }
 
-    // Se acertou, salva no banco e aumenta os pontos no ranking
-    if ((tipoAtual === 'acerto' || tipoAtual === 'zerou') && userId) {
+    // Só salva a nova fase e dá pontos se a fase atual que ele acabou de jogar
+    // for a mesma fase máxima que está registrada pra ele no banco de dados (que nós setamos no carregarProgresso).
+    if (userId) {
        const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
        
-       // 1. Atualiza a fase no perfil
-       await supabase.from('perfis').update({ fase_saga: novaFase }).eq('id', userId)
+       // Pegar a fase MÁXIMA dele antes de dar ponto
+       const { data: pData } = await supabase.from('perfis').select('fase_saga, pontuacao').eq('id', userId).single()
+       
+       const faseSagaSalva = pData?.fase_saga || 1
+       
+       // Só dá pontos se ele passou uma fase INÉDITA
+       if (faseSagaSalva < novaFase) {
+          // 1. Atualiza a fase máxima no perfil
+          await supabase.from('perfis').update({ fase_saga: novaFase }).eq('id', userId)
 
-       // 2. Dá 10 pontos automáticos pro Ranking
-       try {
-         const { data: perfAtual } = await supabase.from('perfis').select('pontuacao').eq('id', userId).single()
-         const novosPontos = (perfAtual?.pontuacao || 0) + 10
-         await supabase.from('perfis').update({ pontuacao: novosPontos }).eq('id', userId)
-       } catch (err) {}
+          // 2. Dá 10 pontos pro Ranking Geral
+          const novosPontos = (pData?.pontuacao || 0) + 10
+          await supabase.from('perfis').update({ pontuacao: novosPontos }).eq('id', userId)
+       }
     }
   }
 

@@ -251,7 +251,7 @@ export default function DashboardFundamental() {
     }
   }
 
-  const concluirLivro = async () => {
+const concluirLivro = async () => {
     const supabase = window.supabase.createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -265,12 +265,28 @@ export default function DashboardFundamental() {
         const novosPontos = pontosAtuais + livroAtivo.pontos
         const novaListaLivros = [...livrosJaLidos, livroAtivo.id]
 
-        await supabase.from('perfis').update({ 
+        // 1. Salva no banco de dados
+        const { error } = await supabase.from('perfis').update({ 
           pontuacao: novosPontos,
           livros_lidos: novaListaLivros
         }).eq('id', user.id)
 
+        if (error) throw error
+
         setLivrosLidos(novaListaLivros)
+        
+        // 2. Atualiza o Ranking na tela na MESMA HORA (sem precisar de F5)
+        setRanking(prevRanking => {
+          const novoRanking = prevRanking.map(aluno => {
+            if (aluno.id === user.id) {
+              return { ...aluno, pontuacao: novosPontos }
+            }
+            return aluno
+          })
+          // Reordena o ranking caso o aluno tenha ultrapassado alguém
+          return novoRanking.sort((a, b) => (b.pontuacao || 0) - (a.pontuacao || 0))
+        })
+
         alert(`🎉 FANTÁSTICO! Você leu o livro todo e ganhou +${livroAtivo.pontos} PONTOS MÁGICOS!`)
       } else {
         alert("Você já ganhou os pontos desse livro antes, mas é sempre bom reler! 📚")
@@ -279,7 +295,7 @@ export default function DashboardFundamental() {
       setLivroAtivo(null)
       
     } catch (error) {
-      alert("Ops, erro ao salvar os pontos. Tente clicar em Concluir novamente!")
+      alert("Ops, erro ao salvar os pontos. " + error.message)
     }
   }
 
